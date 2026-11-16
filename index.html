@@ -166,6 +166,8 @@ header.top{flex-wrap:wrap;gap:6px}header.top h1{white-space:nowrap;font-size:17p
 #sync{position:fixed;right:10px;bottom:8px;z-index:50;background:rgba(16,41,74,.92);color:#fff;font-size:12px;white-space:nowrap;cursor:pointer;padding:4px 10px;border-radius:12px}@media print{#sync{display:none}}
 @media (max-width:1000px){aside{width:240px}header.top h1{font-size:17px;margin-right:6px}}
 @media (pointer:coarse){.btn{padding:9px 14px}.btn.small{padding:7px 11px}}
+.stabs{display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap;align-items:center}.stab[hidden]{display:none}
+th.srt{cursor:pointer;user-select:none;white-space:nowrap}th.srt:hover{text-decoration:underline}th.s-asc::after{content:" ▲";font-size:10px}th.s-desc::after{content:" ▼";font-size:10px}
 </style>
 </head>
 <body>
@@ -227,7 +229,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.0.0';
+const VERSION = '3.1.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -605,6 +607,55 @@ async function syncNow() {
   if (ch) { await load(); if (!dirty && !V.edit) render(); }
   if (stat !== 'signin' && stat !== 'offline') await flushQ();
 }
+
+/* ---- click a column heading to sort any list: 1st click A-Z, 2nd Z-A, 3rd back to the original order ---- */
+const tableSort = (function () {
+  const states = {}; let queued = false;
+  const OK_EDIT = new Set(['n-grid', 'cu-grid', 'u-grid']);
+  const isNum = s => /^\s*[-+]?(\d[\d,]*\.?\d*|\.\d+)\s*%?\s*$/.test(s);
+  const cellVal = c => { if (!c) return ''; const i = c.querySelector('input,select,textarea'); const v = i ? i.value : c.textContent; const t = String(v == null ? '' : v).replace(/\s+/g, ' ').trim(); return /^[–—-]$/.test(t) ? '' : t; };
+  const eligible = t => {
+    if (t.dataset.nosort != null || t.querySelector('th.sortable,[rowspan]')) return false;
+    if (t.classList.contains('edit') && !OK_EDIT.has(t.id)) return false;
+    return !!t.tHead && t.tBodies.length === 1 && t.tHead.rows.length === 1;
+  };
+  const keyOf = t => { const card = t.closest('.card'), h2 = card && card.querySelector('h2'); return (t.id || '') + '|' + (h2 ? h2.textContent : '') + '|' + [...t.tHead.rows[0].cells].map(c => c.textContent.trim()).join('/'); };
+  function order(run, st) {
+    if (!st) return run.slice().sort((a, b) => a.dataset.i - b.dataset.i);
+    const vals = run.map(r => cellVal(r.cells[st.col])), ne = vals.filter(v => v !== '');
+    const numeric = ne.length > 0 && ne.every(isNum), key = v => numeric ? parseFloat(v.replace(/[,%\s]/g, '')) : v;
+    return run.map((r, i) => ({ r, v: vals[i], i })).sort((a, b) => {
+      if (a.v === '' || b.v === '') return a.v === b.v ? a.r.dataset.i - b.r.dataset.i : (a.v === '' ? 1 : -1);
+      const x = key(a.v), y = key(b.v), c = numeric ? x - y : String(x).localeCompare(String(y), undefined, { numeric: true, sensitivity: 'base' });
+      return (c * st.dir) || (a.r.dataset.i - b.r.dataset.i);
+    }).map(o => o.r);
+  }
+  function apply(t, st) {
+    const tb = t.tBodies[0], out = []; let run = [];
+    const flush = () => { if (run.length) { out.push(...order(run, st)); run = []; } };
+    for (const r of [...tb.rows]) { if (r.classList.contains('grp') || [...r.cells].some(c => c.colSpan > 1)) { flush(); out.push(r); } else run.push(r); }
+    flush(); out.forEach(r => tb.appendChild(r));
+  }
+  function paint(t, st) { [...t.tHead.rows[0].cells].forEach((th, c) => { th.classList.remove('s-asc', 's-desc'); if (st && st.col === c) th.classList.add(st.dir > 0 ? 's-asc' : 's-desc'); }); }
+  function setup(t) {
+    t.dataset.sk = '1';
+    if (!eligible(t)) return;
+    [...t.tBodies[0].rows].forEach((r, i) => { r.dataset.i = i; });
+    const key = keyOf(t); t.dataset.skey = key;
+    [...t.tHead.rows[0].cells].forEach((th, c) => { if (!th.textContent.trim() || th.querySelector('input,select,button')) return; th.classList.add('srt'); th.dataset.c = c; th.title = 'Click to sort: A–Z, then Z–A, then the original order'; });
+    if (states[key]) apply(t, states[key]); paint(t, states[key]);
+  }
+  const scan = () => { queued = false; document.querySelectorAll('table').forEach(t => { if (t.dataset.sk && t._sh === t.tHead && t._sb === t.tBodies[0]) return; setup(t); t._sh = t.tHead; t._sb = t.tBodies[0]; }); };
+  document.addEventListener('click', e => {
+    const th = e.target.closest && e.target.closest('th.srt'); if (!th) return;
+    const t = th.closest('table'), key = t.dataset.skey, c = +th.dataset.c, cur = states[key];
+    const nx = (!cur || cur.col !== c) ? { col: c, dir: 1 } : cur.dir === 1 ? { col: c, dir: -1 } : null;
+    if (nx) states[key] = nx; else delete states[key];
+    apply(t, nx); paint(t, nx);
+  });
+  new MutationObserver(() => { if (!queued) { queued = true; requestAnimationFrame(scan); } }).observe(document.body, { childList: true, subtree: true });
+  return { reset() { Object.keys(states).forEach(k => delete states[k]); } };
+})();
 function toast(msg, err) {
   const t = document.createElement('div'); t.className = 'toast' + (err ? ' err' : ''); t.textContent = msg;
   document.body.appendChild(t); setTimeout(() => t.remove(), err ? 6000 : 2600);
@@ -896,6 +947,7 @@ const statusText = s => ({ ok: 'Salt within target', low: 'Salt below target', h
 async function load() { S = await api('GET', '/api/state'); refreshTabs(); NORMS_EFF = effNorms(); }
 const recipeById = id => S.recipes.find(r => r.id === id);
 async function go(page, id) {
+  tableSort.reset();
   if (dirty && !(await confirmBox('<h3>Discard your changes?</h3><p>You have edits that have not been saved.</p>', 'Discard', true))) return;
   dirty = false; V.page = page; if (id !== undefined) V.id = id; V.edit = false; V.draft = null;
   if (page === 'recipe' && V.id) { const rr = recipeById(V.id); if (rr) V.coll = collOf(rr); }
@@ -2025,7 +2077,8 @@ function thSort(rep, key, label, cls) { const s = V.rs[rep]; return '<th class="
 function bindSort(rep, redraw) {
   $$('th[data-sort^="' + rep + ':"]').forEach(th => th.onclick = () => {
     const k = th.dataset.sort.split(':')[1], s = V.rs[rep];
-    if (s.key === k) s.dir = -s.dir; else { s.key = k; s.dir = NUM_KEYS.has(k) ? -1 : 1; }
+    const d = s.def || (s.def = { key: s.key, dir: s.dir }), first = NUM_KEYS.has(k) ? -1 : 1;
+    if (s.key === k) { if (s.dir === first) s.dir = -first; else { s.key = d.key; s.dir = d.dir; } } else { s.key = k; s.dir = first; }
     redraw();
   });
 }
@@ -2207,8 +2260,11 @@ async function newRef() {
 function renderSettings() {
   const tg = targets(), un = clone(units()), info = S.info, m = $('#main');
   m.innerHTML = `<div class="rhead"><h1>Settings</h1></div>
+  <div class="stabs"><button class="btn" data-stb="org">Organisation</button><button class="btn" data-stb="salt">Salt &amp; Fat</button><button class="btn" data-stb="meas">Measures</button><button class="btn" data-stb="data">Drive &amp; data</button><button class="btn primary" id="st-save" style="margin-left:auto">Save settings</button></div>
+  <div class="stab" data-st="org">
   <div class="card" id="tabs-card"></div>
   <div class="card" id="cats-card"></div>
+  </div><div class="stab" data-st="salt">
   <div class="card"><h2>Salt targets (% of meat + fat)</h2>
     <div class="form-grid" style="max-width:640px">
       <label class="f">Fresh sausage: from<input id="t-f0" type="number" step="0.05" value="${tg.fresh[0]}"></label>
@@ -2227,14 +2283,15 @@ function renderSettings() {
   <div class="card"><h2>Ingredient norms (for the salt and fat analysis)</h2>
     <p class="help">Typical salt and fat content (% by weight), the weight of one item (g), and the salt % to use when the ingredient is a made-up liquid (for example a stock cube dissolved in water), matched on the words in an ingredient's name; the longest match wins. They are everyday approximations: replace any of them with the figures from your own packs. An ingredient with a Salt % or Fat % typed in the recipe editor ignores this table.</p>
     <div style="max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;max-width:760px"><table class="edit" id="n-grid" style="margin:0"></table></div>
-    <p><button class="btn small" id="n-add">＋ Add row</button> <button class="btn small" id="n-reset">Reset to the built-in list</button></p>
-    <h3 style="margin:14px 0 6px;font-size:14px">Weights of counting units (g)</h3>
+    <p><button class="btn small" id="n-add">＋ Add row</button> <button class="btn small" id="n-reset">Reset to the built-in list</button></p></div>
+  </div><div class="stab" data-st="meas">
+  <div class="card"><h2>Units: weight of one counting unit (g)</h2><p class="help">Used when an amount is given as a count, such as each, clove or slice.</p>
     <table class="edit" id="cu-grid" style="max-width:420px"></table><p><button class="btn small" id="cu-add">＋ Add unit</button></p></div>
-  <div class="card"><h2>Unit conversions (grams in one unit)</h2>
+  <div class="card"><h2>Conversions (grams in one unit)</h2>
     <p class="help">Used to turn oz, lb, tsp and so on into grams for the salt check and the totals. Units that are not listed here (each, pinch, …) are ignored in the totals.</p>
     <table class="edit" id="u-grid" style="max-width:420px"></table>
     <p><button class="btn small" id="u-add">＋ Add unit</button></p></div>
-  <p><button class="btn primary" id="st-save">Save settings</button></p>
+  </div><div class="stab" data-st="data">
   <div class="card"><h2>Google Drive and your data</h2>
     <p>Your recipes, notes and tables are kept as small files in your Google Drive, in the folder <b>Recipe Book Data</b> (sub-folders <code>recipes</code>, <code>notes</code>, <code>reference</code>, plus <code>files</code> for documents added by Import). This page and the tablet read the same folder, so a change on one shows on the other the next time it syncs. Google Drive keeps earlier versions of every file for 30 days.</p>
     <p class="muted">Sync now: <b id="sync-now-state"></b></p>
@@ -2247,7 +2304,9 @@ function renderSettings() {
     <p class="help">“Open file” looks for the file by name in your Google Drive. The first time, Google asks you to allow Recipe Book to read your Drive files. Files added through Import are kept in <code>Recipe Book Data/files</code> and open directly.</p>
     <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button></div></div>
   <div class="card"><h2>Trash</h2>${S.trash.length ? '<table>' + S.trash.map(t => '<tr><td>' + esc(t.name) + '</td><td class="muted">' + esc(t.category) + '</td><td class="muted">' + esc(t.updated_at) + '</td><td><button class="btn small" data-un="' + t.id + '">Restore</button> <button class="btn small danger" data-pg="' + t.id + '">Delete forever</button></td></tr>').join('') + '</table>' : '<p class="muted">Empty.</p>'}</div>
-  <p class="muted">Recipe Book ${esc(info.version)}</p>`;
+  <p class="muted">Recipe Book ${esc(info.version)}</p></div>`;
+  const stShow = n => { V.stab = n; $$('.stab').forEach(d => { d.hidden = d.dataset.st !== n; }); $$('[data-stb]').forEach(b => b.classList.toggle('on', b.dataset.stb === n)); $('#st-save').hidden = n === 'data' || n === 'org'; };
+  $$('[data-stb]').forEach(b => { b.onclick = () => stShow(b.dataset.stb); }); stShow(V.stab || 'org');
   const ug = () => { $('#u-grid').innerHTML = '<thead><tr><th>Unit</th><th>Grams each</th><th></th></tr></thead><tbody>' + Object.keys(un).map(k => `<tr><td><input data-uk="${esc(k)}" value="${esc(k)}"></td><td><input data-uv="${esc(k)}" inputmode="decimal" value="${esc(un[k])}"></td><td><button class="mvb" data-ud="${esc(k)}">✕</button></td></tr>`).join('') + '</tbody>'; };
   ug();
   $('#u-grid').onchange = e => {

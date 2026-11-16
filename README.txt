@@ -1,27 +1,12 @@
-Recipe Book v3.0.0 (web, Google Drive)
-======================================
-Same app as Recipe Book 2.7 on Windows, but it runs in the browser (PC and tablet) and keeps
-its data in Google Drive, like Cheese Book.
+Recipe Book v3.1.0 (web, Google Drive)
+Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-Changes from 2.7
-- Data: Drive folder "Recipe Book Data" (created by the app; sub-folders recipes, notes, reference, files).
-- No Cheese tab, no pate making log (old log entries become notes), no Quit/data-folder/backup/smart-import.
-- Notes are plain notes. Method is just the Method text.
-- Top line: tabs ... [New recipe] [Search] ... Salt report, Fat, Ranges, Reference, Settings.
-- Sync status badge bottom-right (tap for Drive status). Settings has Sync now / Export / Import.
+New in 3.1.0
+- Click any column heading in a list to sort: 1st click A-Z (or low-high), 2nd Z-A, 3rd back to the original order.
+  Works in the recipe amounts, salt and fat analysis, reports, salt ranges, Ingredient norms, Units and Conversions.
+  (Tabs, Categories and the recipe editor are not sortable because their order is something you set.)
+- Settings has sub-tabs: Organisation (Tabs, Categories), Salt & Fat (Targets, Norms), Measures (Units, Conversions),
+  Drive & data. Save settings applies to Salt & Fat and Measures.
 
-Install (same as Cheese Book)
-1. Create a GitHub repo (e.g. recipe-book), upload everything in this folder, enable Pages.
-2. Open https://richardallen39l.github.io/recipe-book/ (the same Google sign-in client as Cheese Book is used;
-   its authorised origin is the whole github.io site, so nothing to add).
-3. First run: sign in, then Welcome screen -> choose the export file from 2.7
-   (2.7 Settings -> Export everything (.json)). Cheese recipes in it are skipped.
-4. On the tablet: open the same address, sign in, "Add to Home screen".
-
-"Open file" links (recipes' Source file, notes' Linked file)
-They are looked up by file name in your Drive (so your Recipe Book/recipes folder works).
-This needs the extra read-only permission https://www.googleapis.com/auth/drive.readonly:
-Google Cloud console -> APIs & Services -> OAuth consent screen -> Data access -> Add scope.
-Then in the app: Settings -> Allow access to my Drive files. Without it everything else still works.
-
-Import from file (.pdf/.docx/.txt) reads the file in the browser; the pdf/docx readers load from cdnjs when first used.
+Setup, Drive and Open-file notes are unchanged from 3.0.0:
+Open file needs the drive.readonly scope added under Google Cloud -> OAuth consent screen -> Data access.
