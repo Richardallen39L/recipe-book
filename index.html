@@ -25,6 +25,7 @@ button{cursor:pointer}
 header.top{display:flex;align-items:center;gap:8px;padding:8px 14px;background:linear-gradient(90deg,var(--hdr1),var(--hdr2));border-bottom:1px solid var(--line);flex:none}
 header.top h1{font-size:19px;margin:0 14px 0 0;color:#fff;letter-spacing:.2px;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 header.top .btn{background:rgba(255,255,255,.92);color:#2a211c;border-color:transparent}
+header.top h1 .hver{font-size:12px;font-weight:400;opacity:.85;margin-left:4px;text-shadow:none}
 header.top .btn:hover{background:#fff}
 header.top .btn.primary{background:#ffe9a8;color:#3d2a00;border-color:#ffd978}
 .btn{border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:7px;line-height:1.2;display:inline-block;color:var(--ink);text-decoration:none}
@@ -229,7 +230,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.1.0';
+const VERSION = '3.1.1';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -967,7 +968,8 @@ function render() {
 
 /* ====================== tabs ====================== */
 function renderTabs() {
-  document.querySelector('header.top h1').textContent = '📖 Recipes';
+  document.querySelector('header.top h1').innerHTML = '📖 Recipe Book <small class="hver">v' + VERSION + '</small>';
+  document.title = 'Recipe Book v' + VERSION;
   $('#tabs').innerHTML = COLLS.map(c => '<button class="btn tab ' + (V.coll === c[0] && ['recipe','new','note','plog'].includes(V.page) ? 'on' : '') + '" data-coll="' + c[0] + '">' + c[1] + '</button>').join('');
   $$('#tabs [data-coll]').forEach(b => b.onclick = () => setColl(b.dataset.coll));
   $('#b-new').textContent = V.coll === 'notes' ? '＋ New note' : '＋ New recipe';
