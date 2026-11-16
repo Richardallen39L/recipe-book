@@ -37,6 +37,7 @@ header.top .btn.primary{background:#ffe9a8;color:#3d2a00;border-color:#ffd978}
 .btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .spacer{flex:1}
 #app{flex:1;display:flex;min-height:0}
+#app.nc aside{display:none}
 aside{width:300px;flex:none;border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
 aside .tools{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 aside input[type=search],aside select{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--input)}
@@ -173,6 +174,7 @@ th.srt{cursor:pointer;user-select:none;white-space:nowrap}th.srt:hover{text-deco
 </head>
 <body>
 <header class="top">
+  <button class="btn" id="b-nav" title="Show or hide the recipe list" aria-label="Show or hide the recipe list" style="font-size:17px;padding:3px 10px">&#9776;</button>
   <h1>📖 Recipes</h1>
   <span id="tabs"></span>
   <span class="spacer"></span>
@@ -231,7 +233,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.1.2';
+const VERSION = '3.2.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -2369,6 +2371,11 @@ $('#b-ranges').onclick = () => go('ranges');
 $('#b-search').onclick = () => { V.fromSearch = false; go('search'); };
 $('#b-refs').onclick = () => go('refs');
 $('#b-settings').onclick = () => go('settings');
+(function () {
+  const app = $('#app'), set = c => { app.classList.toggle('nc', c); try { localStorage.setItem('rb:nav', c ? '1' : '0'); } catch (e) {} };
+  let c = false; try { c = localStorage.getItem('rb:nav') === '1'; } catch (e) {}
+  set(c); $('#b-nav').onclick = () => set(!app.classList.contains('nc'));
+})();
 $('#b-quit').onclick = async () => {
   if (dirty && !confirm('You have unsaved changes on this page. Quit anyway?')) return;
   const t0 = Date.now();

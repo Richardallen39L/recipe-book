@@ -1,7 +1,10 @@
-Recipe Book v3.1.2 (web, Google Drive)
+Recipe Book v3.2.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.1.2
+New in 3.2.0
+- The ☰ button at the top left shows or hides the recipe list so the recipe gets the full width. The choice is remembered on each device.
+
+In 3.1.2
 - Quit button restored (top right). It waits for pending Drive saves, then closes the window.
 - Fixed the install clash with Cheese Book: the app manifest now has its own unique id (recipe-book).
 
