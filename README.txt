@@ -1,7 +1,11 @@
-Recipe Book v3.1.1 (web, Google Drive)
+Recipe Book v3.1.2 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.1.1
+New in 3.1.2
+- Quit button restored (top right). It waits for pending Drive saves, then closes the window.
+- Fixed the install clash with Cheese Book: the app manifest now has its own unique id (recipe-book).
+
+In 3.1.1
 - The version number (e.g. v3.1.1) is shown in the app header and in the window title.
 - The service worker now bypasses the browser cache so an installed copy picks up new versions at the next open.
 - New maskable icon (icon-maskable-512.png) so Android does not crop the app icon.

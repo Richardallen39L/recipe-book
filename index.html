@@ -184,6 +184,7 @@ th.srt{cursor:pointer;user-select:none;white-space:nowrap}th.srt:hover{text-deco
   <button class="btn" id="b-ranges" title="Salt ranges">Ranges</button>
   <button class="btn" id="b-refs">Reference</button>
   <button class="btn" id="b-settings" title="Settings">Settings</button>
+  <button class="btn" id="b-quit" title="Close Recipe Book">Quit</button>
 </header>
 <span id="sync" title="Google Drive sync (tap for details)"></span>
 <div class="banner" id="banner" hidden></div>
@@ -230,7 +231,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.1.1';
+const VERSION = '3.1.2';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -2368,6 +2369,14 @@ $('#b-ranges').onclick = () => go('ranges');
 $('#b-search').onclick = () => { V.fromSearch = false; go('search'); };
 $('#b-refs').onclick = () => go('refs');
 $('#b-settings').onclick = () => go('settings');
+$('#b-quit').onclick = async () => {
+  if (dirty && !confirm('You have unsaved changes on this page. Quit anyway?')) return;
+  const t0 = Date.now();
+  while ((Q.length || busy) && stat !== 'signin' && stat !== 'offline' && Date.now() - t0 < 8000) { if (!busy) flushQ(); await new Promise(r => setTimeout(r, 300)); }
+  if (Q.length && !confirm(Q.length + ' change(s) are not saved to Drive yet. They stay on this device and are sent next time. Quit anyway?')) return;
+  dirty = false; window.close();
+  setTimeout(() => toast('The browser did not allow Quit to close this window. Close it with the X in the corner (on the tablet, swipe the app away).', true), 500);
+};
 $('#q').oninput = () => renderList();
 $('#q').onkeydown = e => { if (e.key === 'Enter' && $('#q').value.trim()) { e.preventDefault(); V.sf.q = $('#q').value.trim(); V.fromSearch = false; go('search'); } };
 $('#filter').onchange = () => renderList();
