@@ -1,7 +1,10 @@
-Recipe Book v3.8.0 (web, Google Drive)
+Recipe Book v3.9.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.8.0
+New in 3.9.0
+- Check source files: "Found by name" is treated as fine (listed after the real problems); making it permanent by ID is optional. "Tick all with no source file in [tab]" lets you pick one tab (for example the Sausage tab) and give all its blank recipes the Sausage Calculator workbook as their source in one go.
+
+In 3.8.0
 - Check source files: a Tab column, tick boxes on recipes without a working source file, and "Use this file for the ticked recipes" - type a file name (for example Sausage_Calculator_v30.xlsm) and every ticked recipe gets that file as its source. For recipes that only exist in a workbook.
 
 In 3.7.0

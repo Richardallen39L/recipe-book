@@ -235,7 +235,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.8.0';
+const VERSION = '3.9.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -526,8 +526,8 @@ async function storeSourceFile(file) {   // keep a copy in Drive (Recipe Book Da
   if (Drive === SimDrive) return 'Imported recipes/' + file.name;
   const j = await Drive.putBlob(file.name, file, file.type); return 'drive:' + j.id + '/' + file.name;
 }
-const SRC_ORDER = ['error', 'notfound', 'missing', 'trashed', 'several', 'byname', 'ok', 'none'];
-const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Trash', several: 'Found in several places', byname: 'Found by name', ok: 'Linked by ID', none: 'No source file' };
+const SRC_ORDER = ['error', 'notfound', 'missing', 'trashed', 'several', 'none', 'byname', 'ok'];
+const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Trash', several: 'Found in several places', byname: 'Found by name (fine)', ok: 'Linked by ID', none: 'No source file' };
 async function checkSources() {
   if (!Drive.fileInfo) return toast('Checking source files needs the Google Drive connection (not available in test mode)', true);
   const o = document.createElement('div'); o.className = 'overlay';
@@ -562,10 +562,10 @@ async function checkSources() {
   const body = o.querySelector('.pop-body');
   const NEED = ['none', 'notfound', 'missing', 'trashed', 'several'], tabOf = r => ((COLLS.find(c => c[0] === collOf(r)) || [])[1] || '');
   body.innerHTML = '<p><b>' + rows.length + ' recipes:</b> ' + esc(sum) + '.</p><div style="max-height:52vh;overflow:auto"><table><thead><tr><th></th><th>Recipe</th><th>Tab</th><th>Source</th><th>Status</th><th>Where</th></tr></thead><tbody>' +
-    rows.map(x => '<tr><td>' + (NEED.includes(x.st) ? '<input type="checkbox" class="sc-tick" data-st="' + x.st + '" data-r="' + x.r.id + '" style="width:auto">' : '') + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
-    (rows.some(x => NEED.includes(x.st)) ? '<div class="row-inline" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button class="btn small" id="sc-tickall" type="button">Tick all with no source file</button><input id="sc-name" placeholder="File name, e.g. Sausage_Calculator_v30.xlsm" style="flex:1;min-width:220px"><button class="btn small" id="sc-set" type="button">Use this file for the ticked recipes</button></div>' : '') +
-    '<p class="help">“Linked by ID” files keep opening if you rename or move them. “Found by name” files are located by searching your Drive for the file name, which stops working if the file is renamed or there is a second file with that name. For recipes that only exist in a workbook (for example the Sausage Calculator), tick them, type the workbook’s file name and use it as their source.</p>';
-  const ta = o.querySelector('#sc-tickall'); if (ta) ta.onclick = () => o.querySelectorAll('.sc-tick[data-st="none"]').forEach(c => { c.checked = true; });
+    rows.map(x => '<tr><td>' + (NEED.includes(x.st) ? '<input type="checkbox" class="sc-tick" data-st="' + x.st + '" data-tab="' + collOf(x.r) + '" data-r="' + x.r.id + '" style="width:auto">' : '') + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
+    (rows.some(x => NEED.includes(x.st)) ? '<div class="row-inline" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button class="btn small" id="sc-tickall" type="button">Tick all with no source file in</button><select id="sc-tab" style="width:auto"><option value="">all tabs</option>' + [...new Set(rows.filter(x => x.st === 'none').map(x => collOf(x.r)))].map(t => '<option value="' + t + '">' + esc(((COLLS.find(c => c[0] === t) || [])[1]) || t) + '</option>').join('') + '</select><input id="sc-name" placeholder="File name, e.g. Sausage_Calculator_v30.xlsm" style="flex:1;min-width:220px"><button class="btn small" id="sc-set" type="button">Use this file for the ticked recipes</button></div>' : '') +
+    '<p class="help">“Linked by ID” files keep opening if you rename or move them. “Found by name” is fine as it stands; it only stops working if the file is renamed or a second file gets the same name, and the optional button above turns those into ID links. For recipes that only exist in a workbook (for example the Sausage Calculator), tick them, type the workbook’s file name and use it as their source.</p>';
+  const ta = o.querySelector('#sc-tickall'); if (ta) ta.onclick = () => { const tb = o.querySelector('#sc-tab').value; o.querySelectorAll('.sc-tick[data-st="none"]').forEach(c => { if (!tb || c.dataset.tab === tb) c.checked = true; }); };
   const st = o.querySelector('#sc-set'); if (st) st.onclick = async () => {
     const ids = Array.from(o.querySelectorAll('.sc-tick:checked')).map(c => +c.dataset.r), nm = o.querySelector('#sc-name').value.trim();
     if (!ids.length) return toast('Tick the recipes first', true); if (!nm) return toast('Type the file name first', true);
@@ -582,7 +582,7 @@ async function checkSources() {
   cp.onclick = async () => { const t = rows.map(x => [x.r.name, linkName(x.src), SRC_LABEL[x.st], x.where].join('\t')).join('\n'); try { await navigator.clipboard.writeText(t); toast('Report copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
   const fix = rows.filter(x => x.st === 'byname'), lk = o.querySelector('#sc-link');
   if (fix.length) {
-    lk.hidden = false; lk.textContent = 'Link ' + fix.length + ' found file' + (fix.length > 1 ? 's' : '') + ' by ID';
+    lk.hidden = false; lk.textContent = 'Make ' + fix.length + ' name-based link' + (fix.length > 1 ? 's' : '') + ' permanent (optional)';
     lk.onclick = async () => {
       if (!await confirmBox('<h3>Link ' + fix.length + ' file' + (fix.length > 1 ? 's' : '') + ' by ID?</h3><p>Each recipe’s Source file changes from a name to a direct link to the file found above. The files themselves are not touched.</p>', 'Link them')) return;
       let n = 0; lk.disabled = true;
