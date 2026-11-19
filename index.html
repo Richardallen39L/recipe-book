@@ -233,7 +233,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.2.0';
+const VERSION = '3.3.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1109,7 +1109,7 @@ function renderRecipe() {
   drawAmounts(r);
   $('#a-fav').onclick = async () => { const d = clone(r); d.favorite = !d.favorite; await saveRecipe(r.id, d); };
   $('#a-edit').onclick = () => { V.edit = true; V.draft = clone(r); dirty = false; renderRecipe(); };
-  $('#a-dup').onclick = () => { const d = clone(r); d.name = r.name + ' (copy)'; d.id = 0; d.favorite = false; V.page = 'new'; V.draft = d; dirty = true; render(); };
+  $('#a-dup').onclick = () => { const d = clone(r); const taken = new Set(allRecipes().map(x => String(x.name).toLowerCase())); let nn = r.name + ' (copy)', k = 2; while (taken.has(nn.toLowerCase())) nn = r.name + ' (copy ' + (k++) + ')'; d.name = nn; d.id = 0; d.favorite = false; delete d.versions; V.page = 'new'; V.draft = d; dirty = true; render(); };
   addBackBar();
   $('#a-print').onclick = () => window.print();
   if ($('#a-src')) { $('#a-src').onclick = () => openFile(r.source); $('#a-srcf').onclick = () => openFile(r.source, true); }

@@ -1,7 +1,10 @@
-Recipe Book v3.2.0 (web, Google Drive)
+Recipe Book v3.3.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.2.0
+New in 3.3.0
+- Duplicate now numbers itself if "(copy)" already exists: Name (copy), Name (copy 2), and so on, so saving no longer fails on a name clash.
+
+In 3.2.0
 - The ☰ button at the top left shows or hides the recipe list so the recipe gets the full width. The choice is remembered on each device.
 
 In 3.1.2
