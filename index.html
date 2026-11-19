@@ -69,6 +69,8 @@ main{flex:1;overflow:auto;padding:20px 28px 60px;min-width:0}
 .saltline .sub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
 .saltline .rng{color:var(--ink)}
 .saltline .muted{color:var(--muted)}
+.saltline.clk{cursor:pointer}.saltline.clk:hover .tot{text-decoration:underline}
+.modal.wide{max-width:min(780px,95vw);width:95%}
 .banner{background:var(--warn-bg);color:var(--ink);border-bottom:1px solid var(--warn);padding:9px 16px;display:flex;gap:12px;align-items:center;flex:none}
 .banner span{flex:1}
 .scale{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
@@ -233,7 +235,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.3.0';
+const VERSION = '3.4.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1100,13 +1102,14 @@ function renderRecipe() {
   </div>
   <div class="printonly muted" id="print-scale"></div>
   <div class="card"><h2>Ingredients</h2><div id="amounts"></div></div>
-  ${collOf(r) === 'sausage' ? '<div class="card" id="checks-card"><h2>Salt &amp; cure check</h2><div id="checks"></div></div>' : '<div class="card" id="saltan-card"><h2>Salt analysis</h2><div id="saltan"></div></div>'}
-  <div class="card" id="fatan-card"><h2>Fat analysis</h2><div id="fatan"></div></div>
+  ${collOf(r) === 'sausage' ? '<div class="card" id="checks-card" style="display:none"><h2>Salt &amp; cure check</h2><div id="checks"></div></div>' : '<div class="card" id="saltan-card" style="display:none"><h2>Salt analysis</h2><div id="saltan"></div></div>'}
+  <div class="card" id="fatan-card" style="display:none"><h2>Fat analysis</h2><div id="fatan"></div></div>
   ${r.method.trim() ? `<div class="card"><h2>Method</h2><div class="rich">${steps(r.method)}</div></div>` : ''}
   ${r.notes.trim() ? `<div class="card"><h2>Notes</h2><div class="rich">${rich(r.notes)}</div></div>` : ''}
   ${r.source ? `<div class="card noprint"><h2>Source file</h2><div class="filebar"><code>${esc(linkName(r.source))}</code><button class="btn small" id="a-src">Open file</button><button class="btn small" id="a-srcf">Show in folder</button></div></div>` : ''}
   <p class="muted noprint" style="font-size:12px">Last saved ${esc(r.updated_at)}</p>`;
   drawAmounts(r);
+  [['#saltline', 'salt', 'salt'], ['#fatline', 'fat', 'fat']].forEach(([sel, kind, w]) => { const e = $(sel); if (!e) return; e.classList.add('clk'); e.title = 'Click for the detailed ' + w + ' analysis'; e.onclick = () => showAnalysis(r, kind); });
   $('#a-fav').onclick = async () => { const d = clone(r); d.favorite = !d.favorite; await saveRecipe(r.id, d); };
   $('#a-edit').onclick = () => { V.edit = true; V.draft = clone(r); dirty = false; renderRecipe(); };
   $('#a-dup').onclick = () => { const d = clone(r); const taken = new Set(allRecipes().map(x => String(x.name).toLowerCase())); let nn = r.name + ' (copy)', k = 2; while (taken.has(nn.toLowerCase())) nn = r.name + ' (copy ' + (k++) + ')'; d.name = nn; d.id = 0; d.favorite = false; delete d.versions; V.page = 'new'; V.draft = d; dirty = true; render(); };
@@ -1152,6 +1155,22 @@ function drawAmounts(r) {
   $('#amounts').innerHTML = h;
   if (sa) { drawSaltLine(r, f, c); drawChecks(r, c, base); } else drawSaltOther(r, f);
   drawFat(r, f);
+}
+function showAnalysis(r, kind) {
+  const sa = collOf(r) === 'sausage';
+  const src = kind === 'fat' ? $('#fatan') : (sa ? $('#checks') : $('#saltan'));
+  if (!src) return;
+  const title = kind === 'fat' ? 'Fat analysis' : (sa ? 'Salt & cure check' : 'Salt analysis');
+  const o = document.createElement('div'); o.className = 'overlay';
+  o.innerHTML = '<div class="modal wide"><h3>' + esc(title) + ': ' + esc(r.name) + '</h3><div class="pop-body"></div><div class="row"><button class="btn primary">Close</button></div></div>';
+  const body = o.querySelector('.pop-body'); body.innerHTML = src.innerHTML;
+  const fb = body.querySelector('#fix-salt'); if (fb) fb.onclick = () => { o.remove(); applyFix(r); };
+  const onKey = ev => { if (ev.key === 'Escape') close(); };
+  const close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
+  o.addEventListener('mousedown', ev => { if (ev.target === o) close(); });
+  o.querySelector('.row button').onclick = close;
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(o);
 }
 function drawChecks(r, c) {
   const el = $('#checks'); let h = '';
@@ -1626,8 +1645,38 @@ const IMP = (() => {
       return R;
     };
     const warnings = [];
-    let R = sections(out);
-    if (!R.ing.length) {
+    // multi-part recipes: Heading / amount lines / method lines, repeated (e.g. pastry, filling, mould for a pâté en croûte)
+    const multi = (() => {
+      if (out.some(l => RX.ingHead.test(l) || RX.methodHead.test(l))) return null;
+      const AMT = new RegExp('^' + QTY + '\\s*[A-Za-z\u00C0-\u00FF\u0152\u0153]');
+      const alt = /^(?:ou|or|oder|o)\s+(?=\d)/i;
+      const isIng = t => !!t && t.length < 100 && !/[.!?]$/.test(t) && (AMT.test(t) || (parseOne(t).hasAmount && t.split(/\s+/).length <= 12));
+      const nb = []; out.forEach((t, i) => { if (t !== '') nb.push(i); });
+      const heads = [];
+      nb.forEach((ix, k) => { const t = out[ix], nx = nb[k + 1]; if (!isIng(t) && !alt.test(t) && t.length <= 90 && !/[.!?]$/.test(t) && nx !== undefined && isIng(out[nx])) heads.push(ix); });
+      if (heads.length < 2) return null;
+      const ingr = [], stepsM = [], blocks = [];
+      heads.forEach((hi, k) => {
+        const end = k + 1 < heads.length ? heads[k + 1] : out.length;
+        const group = out[hi].replace(/\s*[:\uFF1A]\s*$/, '').trim(), n0 = ingr.length, methodL = [];
+        for (let j = hi + 1; j < end; j++) {
+          const t = out[j]; if (t === '') continue;
+          if (alt.test(t) && ingr.length > n0 && !methodL.length) { const pv = ingr[ingr.length - 1]; pv.note = (pv.note ? pv.note + '; ' : '') + t.charAt(0).toLowerCase() + t.slice(1); continue; }
+          if (!methodL.length && isIng(t)) { parseIngredientLine(t).forEach(x => ingr.push(Object.assign(x, { grp: group }))); continue; }
+          methodL.push(t);
+        }
+        blocks.push({ group, methodL });
+      });
+      if (ingr.length < 4) return null;
+      const withM = blocks.filter(b => b.methodL.length), unnum = t => t.replace(/^(?:step\s*\d+[:.)]?|\d+[.)])\s+/i, '').trim();
+      // one method after all the ingredient groups belongs to the whole recipe, so it gets no heading of its own
+      const shared = withM.length === 1 && blocks[blocks.length - 1] === withM[0];
+      withM.forEach(b => { if (!shared) stepsM.push('## ' + b.group); b.methodL.forEach(t => stepsM.push(unnum(t))); });
+      return { ing: ingr, steps: stepsM, intro: out.slice(0, heads[0]).filter(Boolean) };
+    })();
+    let R = multi ? { ing: multi.ing, intro: multi.intro, methodL: [], after: [], sawMethodHead: true } : sections(out);
+    if (multi) warnings.push('Read as a recipe in several parts: the ingredients are grouped under their headings, and any method that came with a heading is in the Method under the same heading.');
+    if (!R.ing.length && !multi) {
       // no ingredient heading: use the longest run of lines that carry an amount
       const isIngLine = t => t && t !== '' && !RX.methodHead.test(t) && !RX.ingHead.test(t) && t.length < 100 && !/[.!?]$/.test(t) &&
         (new RegExp('^' + QTY + '\\s*[A-Za-z]').test(t) || (parseOne(t).hasAmount && t.split(/\s+/).length <= 12));
@@ -1648,9 +1697,9 @@ const IMP = (() => {
     if (!ing.length) warnings.push('No ingredients were found. Check the original text, or add them by hand.');
 
     // steps and trailing non-step paragraphs
-    let steps = buildSteps(methodL);
+    let steps = multi ? multi.steps : buildSteps(methodL);
     const trailing = [];
-    while (steps.length > 2) {
+    while (!multi && steps.length > 2) {
       const last = steps[steps.length - 1], first = (last.match(/^[A-Za-z’']+/) || [''])[0];
       if (NONSTEP.test(first) && !VERBS.has(first.toLowerCase()) && !/\d/.test(last.slice(0, 40)) && !/^(?:[^:]{3,60}: )/.test(last)) { trailing.unshift(steps.pop()); } else break;
     }
