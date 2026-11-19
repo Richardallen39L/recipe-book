@@ -235,7 +235,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.4.0';
+const VERSION = '3.5.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -703,20 +703,20 @@ function saltFrac(i) {
   return 0;
 }
 /* ====================== salt and fat analysis ====================== */
-const NORMS_VERSION = 3;
+const NORMS_VERSION = 4;
 // [words in the name, salt % by weight, fat % by weight, weight of one item (g), salt % when used as a made-up liquid]. null = not set.
 const NORM_ROWS = [
   ['soy sauce',14,0],['fish sauce',25,0],['worcestershire',6,0],['stock cube',5,0,10,0.25],['bouillon',5,0,10,0.25],['oxo',5,0,10,0.25],['knorr',5,0,10,0.25],['stock',0.25,0],['miso',11,6],['marmite',11,0],
   ['anchov',8,10],['caper',8,1],['olive',4,12],['olive oil',0,100],['bacon',3.5,20],['pancetta',3.5,30],['gammon',3,6],['ham',3.5,5],['chorizo',4,35],['salami',5,33],['sausage',2,25],['black pudding',1.2,22],['smoked salmon',3.5,10],['gravlax',3.5,10],
   ['cheese',1.7,30],['parmesan',1.8,28],['pecorino',3,32],['cheddar',1.7,34],['feta',2.8,20],['halloumi',2.7,25],['mozzarella',0.5,17],['brie',1.5,29],['cream cheese',0.8,31],['cottage cheese',0.8,4],['paneer',0.5,22],
   ['salted butter',1.5,82],['butter',null,82],['margarine',1.2,80],['oil',null,100],['lard',null,100],['dripping',null,100],['suet',null,85],['ghee',null,99],['duck fat',null,99],['goose fat',null,99],['shortening',null,100],
-  ['back fat',null,85],['fat back',null,85],['fatback',null,85],['pork fat',null,85],['beef fat',null,85],['lamb fat',null,85],['fat trim',null,85],['pork belly',null,35],
+  ['back fat',null,100],['backfat',null,100],['fat back',null,100],['fatback',null,100],['pork fat',null,85],['beef fat',null,85],['lamb fat',null,85],['fat trim',null,85],['pork belly',null,26.8],['belly pork',null,26.8],
   ['double cream',0.1,48],['single cream',0.1,19],['whipping cream',0.1,39],['heavy cream',0.1,36],['cream',0.1,35],['creme fraiche',0.1,30],['sour cream',0.1,20],['soured cream',0.1,20],
   ['milk',0.1,3.6],['semi-skimmed',0.1,1.7],['skimmed milk',0.1,0.3],['buttermilk',0.2,1],['yogurt',0.1,3.5],['yoghurt',0.1,3.5],['greek yogurt',0.1,9],['greek yoghurt',0.1,9],
   ['ketchup',2,0],['tomato puree',0.4,0],['mustard',3.5,4],['mustard seed',0,28],['mustard powder',0,12],['mayonnaise',1.5,75],['bread',1.2,3],['breadcrumb',1.5,3],['sauerkraut',1.5,0],['kimchi',2,0],['gherkin',2.5,0],['pickle',2.5,0],['curry paste',5,12],['pesto',2,35],['tapenade',4,30],['hummus',1,15],
   ['egg yolk',0,27,18],['egg white',0.3,0,33],['egg',0.3,10,55],
   ['hazelnut',null,63],['almond',null,55],['pistachio',null,45],['walnut',null,69],['cashew',null,48],['peanut',null,50],['pine nut',null,68],['sesame',null,58],['tahini',null,58],['peanut butter',0.5,50],['coconut milk',null,17],['coconut',null,62],['chestnut',null,3],['avocado',null,19,150],
-  ['chicken breast',0.2,2,150],['chicken thigh',0.2,10,100],['chicken',0.2,8],['duck leg',0.2,25,250],['duck breast',0.2,12],['duck',0.2,18],['venison mince',0.2,5],['venison',0.2,3],['lamb',0.2,20],['beef mince',0.2,15],['beef',0.2,10],['pork shoulder',0.2,15],['pork loin',0.2,4],['pork fillet',0.2,3],['pork',0.2,15],['liver',0.2,5],['rabbit',0.2,4,1000],['pheasant',0.2,2],
+  ['chicken breast',0.2,2,150],['chicken thigh',0.2,10,100],['chicken',0.2,8],['duck leg',0.2,25,250],['duck breast',0.2,12],['duck',0.2,18],['venison mince',0.2,5],['venison',0.2,3],['lamb',0.2,20],['beef mince',0.2,15],['beef',0.2,10],['pork shoulder',0.2,24.3],['pork loin',0.2,17.4],['pork fillet',0.2,3],['pork',0.2,15],['liver',0.2,5],['rabbit',0.2,4,1000],['pheasant',0.2,2],
   ['salmon',0.2,12],['trout',0.2,6],['cod',0.2,1],['haddock',0.2,1],['plaice',0.2,1],['sole',0.2,1],['prawn',0.7,1],['tuna',0.3,1],
   ['full cream',0.1,3.6],['whole milk',0.1,3.6],['full fat milk',0.1,3.6],['cream of tartar',null,0],['ice cream',0.2,11],['chick pea',0.3,3],['salmon fillet',0.2,12,175],['plaice fillet',0.2,1,100],['sole fillet',0.2,1,90],['veal',0.2,4],['blood',0.3,0.5],['lean',0.2,5],['lean pork',0.2,5],['lean beef',0.2,5],
   ['port',null,0],['green giant',null,0.2],['gelee',null,0],['cure',null,0],['gelatine',null,0],['cornflour',null,1],['raisin',null,0.5],['bulghur',null,1.5],['bulgur',null,1.5],['jaggery',null,0],['tagliatelle',null,1.5],['plum',null,0.2],['squash',null,0.2],['lettuce',null,0.3],['parsley',null,0.8],['coriander',null,0.5],
@@ -729,11 +729,16 @@ const DEFAULT_NORMS = NORM_ROWS.map(r => { const o = { match: r[0] }; if (r[1] !
 const DEFAULT_COUNT_UNITS = { clove: 5, stalk: 40, slice: 25, bunch: 30, handful: 30, tin: 400, can: 400, head: 50, piece: 50, nest: 60, pinch: 0.4, sprig: 1 };
 const SALT_SPOON = { tsp: 6, tbsp: 18, dssp: 10 };
 const VOLUME_UNITS = new Set(['ml', 'l', 'cl', 'dl', 'litre', 'litres', 'liter', 'liters', 'cup', 'cups', 'pint', 'pints', 'pt', 'quart', 'quarts', 'gallon', 'gallons']);
+const CUT_NORMS = ['pork loin', 'pork shoulder', 'pork belly', 'belly pork', 'back fat', 'backfat', 'fat back', 'fatback'];
 let NORMS_EFF = DEFAULT_NORMS;
 function effNorms() {
   const saved = S && S.settings.ingredient_norms;
   if (!Array.isArray(saved) || !saved.length) return DEFAULT_NORMS;
   if ((S.settings.norms_version || 1) >= NORMS_VERSION) return saved.filter(u => u.match !== 'salt');
+  if ((S.settings.norms_version || 1) === 3) {   // 3 -> 4: only the pork cut and back fat rows changed; keep everything else you saved
+    const cut = DEFAULT_NORMS.filter(x => CUT_NORMS.includes(x.match));
+    return saved.filter(u => u.match !== 'salt' && !CUT_NORMS.includes(u.match)).concat(cut);
+  }
   // saved by an older version: use the built-in list (corrected) and keep only the rows you added yourself
   const known = new Set(DEFAULT_NORMS.map(x => x.match));
   return DEFAULT_NORMS.concat(saved.filter(u => u.match && u.match !== 'salt' && !known.has(u.match)));
@@ -804,6 +809,28 @@ function dotFor(r) {
   return '<span class="dot ' + (s === 'high' ? 'sh' : s === 'low' ? 'sl' : 'sm') + '" title="Salt ' + fmtNum(an.pct, 2) + '% - ' + { high: 'high', low: 'low', med: 'medium', unk: 'not final: salt with no amount is not counted' }[s] + '"></span>';
 }
 const r1 = x => Math.round(x * 10) / 10, r2 = x => Math.round(x * 100) / 100;
+const LOIN_RX = /\b(shoulder|belly)\b/i, NOT_PORK_RX = /\b(lamb|beef|veal|venison|mutton|goat|chicken|turkey|duck|rabbit)\b/i;
+function loinEquiv(r, f) {   // belly / shoulder lines as lean loin + back fat with the same weight and the same fat
+  const fl = (normFor('pork loin', 'fat') != null ? normFor('pork loin', 'fat') : 17.4) / 100, fb = (normFor('back fat', 'fat') != null ? normFor('back fat', 'fat') : 100) / 100, rows = [];
+  r.ingredients.forEach(i => {
+    if (!LOIN_RX.test(i.name) || NOT_PORK_RX.test(i.name)) return;
+    const g = gramsOf(i, f); if (g == null || !(g > 0)) return;
+    const fc = ingFat(i).fr; if (!(fc > fl + 1e-6) || !(fb > fc)) return;
+    const b = g * (fc - fl) / (fb - fl); rows.push({ name: i.name, g, fc, l: g - b, b });
+  });
+  return { rows, fl, fb };
+}
+function drawLoin(r, f) {
+  const card = $('#loin-card'), box = $('#loin'); if (!card || !box) return;
+  const q = loinEquiv(r, f); if (!q.rows.length) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  const g1 = x => fmtNum(r1(x), 1);
+  let h = '<table><thead><tr><th>Ingredient</th><th class="num">Recipe (g)</th><th class="num">Fat %</th><th class="num">Loin (g)</th><th class="num">Back fat (g)</th></tr></thead><tbody>';
+  q.rows.forEach(x => { h += '<tr><td>' + esc(x.name) + '</td><td class="num">' + g1(x.g) + '</td><td class="num">' + fmtNum(r1(x.fc * 100), 1) + '</td><td class="num"><b>' + g1(x.l) + '</b></td><td class="num"><b>' + g1(x.b) + '</b></td></tr>'; });
+  if (q.rows.length > 1) h += '<tr class="grp"><td>Total</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.g, 0)) + '</td><td></td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.l, 0)) + '</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.b, 0)) + '</td></tr>';
+  h += '</tbody></table><p class="help">If you can only get loin, use these weights in place of the line above. The total weight and the total fat are the same as the original cut (loin ' + fmtNum(r1(q.fl * 100), 1) + '% fat, back fat ' + fmtNum(r1(q.fb * 100), 1) + '% fat, from Settings → Ingredient norms). Add the back fat to any back fat already in the recipe.</p>';
+  box.innerHTML = h;
+}
 function drawSaltOther(r, f) {
   const el = $('#saltline'), box = $('#saltan'); if (!el || !box) return;
   const an = saltAnalysis(r, f), tab = collOf(r), t = otherTargets(tab), s = saltStatusOther(an, tab);
@@ -1102,6 +1129,7 @@ function renderRecipe() {
   </div>
   <div class="printonly muted" id="print-scale"></div>
   <div class="card"><h2>Ingredients</h2><div id="amounts"></div></div>
+  <div class="card" id="loin-card" style="display:none"><h2>Using loin and back fat instead</h2><div id="loin"></div></div>
   ${collOf(r) === 'sausage' ? '<div class="card" id="checks-card" style="display:none"><h2>Salt &amp; cure check</h2><div id="checks"></div></div>' : '<div class="card" id="saltan-card" style="display:none"><h2>Salt analysis</h2><div id="saltan"></div></div>'}
   <div class="card" id="fatan-card" style="display:none"><h2>Fat analysis</h2><div id="fatan"></div></div>
   ${r.method.trim() ? `<div class="card"><h2>Method</h2><div class="rich">${steps(r.method)}</div></div>` : ''}
@@ -1155,6 +1183,7 @@ function drawAmounts(r) {
   $('#amounts').innerHTML = h;
   if (sa) { drawSaltLine(r, f, c); drawChecks(r, c, base); } else drawSaltOther(r, f);
   drawFat(r, f);
+  drawLoin(r, f);
 }
 function showAnalysis(r, kind) {
   const sa = collOf(r) === 'sausage';

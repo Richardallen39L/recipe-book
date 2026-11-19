@@ -1,7 +1,11 @@
-Recipe Book v3.4.0 (web, Google Drive)
+Recipe Book v3.5.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.4.0
+New in 3.5.0
+- Ingredient norms: fat % for pork loin 17.4, pork shoulder 24.3, pork belly 26.8 and back fat 100 (also "belly pork", "backfat", "fat back"). Settings you saved earlier are kept; only these rows are updated.
+- A recipe with pork shoulder or belly now shows a card "Using loin and back fat instead": the loin and back fat weights that give the same total weight and the same fat as the cut in the recipe. It follows the scaling.
+
+In 3.4.0
 - The detailed Salt analysis, Salt & cure check and Fat analysis no longer sit under the ingredients. Click the Salt % or Fat % figure at the top of a recipe to open the detail in a pop-up (Esc or Close to dismiss).
 - Import from file now reads recipes made of several parts (a heading, its ingredients, then its method, repeated): each part's ingredients are grouped under the heading and its method goes into the Method under the same heading. French or other languages are kept as written. "Ou 100 g ..." lines become a note on the ingredient above.
 
