@@ -235,7 +235,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.7.0';
+const VERSION = '3.8.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -560,9 +560,24 @@ async function checkSources() {
   const cnt = {}; rows.forEach(x => cnt[x.st] = (cnt[x.st] || 0) + 1);
   const sum = SRC_ORDER.filter(k => cnt[k]).map(k => cnt[k] + ' ' + SRC_LABEL[k].charAt(0).toLowerCase() + SRC_LABEL[k].slice(1)).join(', ');
   const body = o.querySelector('.pop-body');
-  body.innerHTML = '<p><b>' + rows.length + ' recipes:</b> ' + esc(sum) + '.</p><div style="max-height:60vh;overflow:auto"><table><thead><tr><th>Recipe</th><th>Source</th><th>Status</th><th>Where</th></tr></thead><tbody>' +
-    rows.map(x => '<tr><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
-    '<p class="help">“Linked by ID” files keep opening if you rename or move them. “Found by name” files are located by searching your Drive for the file name, which stops working if the file is renamed or there is a second file with that name.</p>';
+  const NEED = ['none', 'notfound', 'missing', 'trashed', 'several'], tabOf = r => ((COLLS.find(c => c[0] === collOf(r)) || [])[1] || '');
+  body.innerHTML = '<p><b>' + rows.length + ' recipes:</b> ' + esc(sum) + '.</p><div style="max-height:52vh;overflow:auto"><table><thead><tr><th></th><th>Recipe</th><th>Tab</th><th>Source</th><th>Status</th><th>Where</th></tr></thead><tbody>' +
+    rows.map(x => '<tr><td>' + (NEED.includes(x.st) ? '<input type="checkbox" class="sc-tick" data-st="' + x.st + '" data-r="' + x.r.id + '" style="width:auto">' : '') + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
+    (rows.some(x => NEED.includes(x.st)) ? '<div class="row-inline" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button class="btn small" id="sc-tickall" type="button">Tick all with no source file</button><input id="sc-name" placeholder="File name, e.g. Sausage_Calculator_v30.xlsm" style="flex:1;min-width:220px"><button class="btn small" id="sc-set" type="button">Use this file for the ticked recipes</button></div>' : '') +
+    '<p class="help">“Linked by ID” files keep opening if you rename or move them. “Found by name” files are located by searching your Drive for the file name, which stops working if the file is renamed or there is a second file with that name. For recipes that only exist in a workbook (for example the Sausage Calculator), tick them, type the workbook’s file name and use it as their source.</p>';
+  const ta = o.querySelector('#sc-tickall'); if (ta) ta.onclick = () => o.querySelectorAll('.sc-tick[data-st="none"]').forEach(c => { c.checked = true; });
+  const st = o.querySelector('#sc-set'); if (st) st.onclick = async () => {
+    const ids = Array.from(o.querySelectorAll('.sc-tick:checked')).map(c => +c.dataset.r), nm = o.querySelector('#sc-name').value.trim();
+    if (!ids.length) return toast('Tick the recipes first', true); if (!nm) return toast('Type the file name first', true);
+    try {
+      const L = await Drive.findByName(nm);
+      if (!L.length) return toast('No file called ' + nm + ' was found in your Drive', true);
+      if (L.length > 1) return toast(L.length + ' files are called ' + nm + '. Rename or remove the extra copies first, then try again', true);
+      if (!await confirmBox('<h3>Use ' + esc(L[0].name) + ' for ' + ids.length + ' recipe' + (ids.length > 1 ? 's' : '') + '?</h3><p>Their Source file will point at that file.</p>', 'Use it')) return;
+      let n = 0; for (const id of ids) { const r = S.recipes.find(x => x.id === id); if (!r) continue; try { const d = clone(r); d.source = 'drive:' + L[0].id + '/' + L[0].name; await api('PUT', '/api/recipes/' + id, d); n++; } catch (e) { toast(r.name + ': ' + e.message, true); } }
+      await load(); toast(n + ' recipe' + (n === 1 ? '' : 's') + ' updated'); close(); render();
+    } catch (e) { toast(e.message || String(e), true); }
+  };
   const cp = o.querySelector('#sc-copy'); cp.hidden = false;
   cp.onclick = async () => { const t = rows.map(x => [x.r.name, linkName(x.src), SRC_LABEL[x.st], x.where].join('\t')).join('\n'); try { await navigator.clipboard.writeText(t); toast('Report copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
   const fix = rows.filter(x => x.st === 'byname'), lk = o.querySelector('#sc-link');

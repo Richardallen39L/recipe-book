@@ -1,7 +1,10 @@
-Recipe Book v3.7.0 (web, Google Drive)
+Recipe Book v3.8.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.7.0
+New in 3.8.0
+- Check source files: a Tab column, tick boxes on recipes without a working source file, and "Use this file for the ticked recipes" - type a file name (for example Sausage_Calculator_v30.xlsm) and every ticked recipe gets that file as its source. For recipes that only exist in a workbook.
+
+In 3.7.0
 - Settings -> Check source files: lists every recipe as linked by ID, found by name, found in several places, not found, linked file gone/in the Trash, or no source file, with the Drive folder each file is in. Copy report puts the list on the clipboard. "Link N found files by ID" turns name-based sources into ID links (they then survive renaming or moving the file). Needs "Allow access to my Drive files" once.
 
 In 3.6.0
