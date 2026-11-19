@@ -1,7 +1,10 @@
-Recipe Book v3.6.0 (web, Google Drive)
+Recipe Book v3.7.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.6.0
+New in 3.7.0
+- Settings -> Check source files: lists every recipe as linked by ID, found by name, found in several places, not found, linked file gone/in the Trash, or no source file, with the Drive folder each file is in. Copy report puts the list on the clipboard. "Link N found files by ID" turns name-based sources into ID links (they then survive renaming or moving the file). Needs "Allow access to my Drive files" once.
+
+In 3.6.0
 - Every recipe now shows a Source file card, even when it has none ("No source file yet" with an Attach file button). Attach file copies the file into Drive (Recipe Book Data/files) and links it by ID, so it still opens if the file is renamed or moved. The editor has Attach file and Clear buttons beside the Source file box.
 
 In 3.5.0

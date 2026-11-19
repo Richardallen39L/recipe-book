@@ -235,7 +235,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.6.0';
+const VERSION = '3.7.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -284,6 +284,13 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
    const b='rb'+Math.random().toString(36).slice(2),head=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[ffid]})}\r\n--${b}\r\nContent-Type: ${mime||'application/octet-stream'}\r\n\r\n`;
    const r=await api(`${UP}/files?uploadType=multipart&fields=id,name`,{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:new Blob([head,blob,`\r\n--${b}--`])});const j=await r.json();note('uploaded file '+name);return j},
   async allowRead(){await tokenR();return true},
+  async fileInfo(id){const t=await tokenR(),r=await fetch(`${API}/files/${id}?fields=id,name,parents,trashed`,{headers:{Authorization:'Bearer '+t}});if(r.status===404)return null;if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. Tap Settings, Allow access to my Drive files, then try again.')}throw err('http','Drive '+r.status)}return r.json()},
+  async findByName(rel){const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
+   const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
+   let L=await rq("name='"+q(base)+"'"+NF);
+   if(!L.length){const nz=s=>String(s).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^a-z0-9]/g,''),stem=base.replace(/\.[^.]+$/,'');L=(await rq("name contains '"+q(stem)+"'"+NF)).filter(f=>nz(f.name)===nz(base))}
+   return L},
+  async folderPath(id){this._fp=this._fp||{};const out=[];let cur=id,n=0;while(cur&&n++<6){let f=this._fp[cur];if(!f){const i=await this.fileInfo(cur).catch(()=>null);f=this._fp[cur]=i?{name:i.name,parent:(i.parents||[])[0]||''}:{name:'…',parent:''}}out.unshift(f.name);cur=f.parent}return out.join(' / ')},
   async resolve(rel){let mm=/^drive:([^/]+)\//.exec(rel);
    if(mm){let parent='';try{parent=((await jq(`${API}/files/${mm[1]}?fields=parents`)).parents||[])[0]||''}catch(e){}return{link:'https://drive.google.com/file/d/'+mm[1]+'/view',parent}}
    let cache={};try{cache=JSON.parse(localStorage.getItem('rb2:lk'))||{}}catch(e){}if(cache[rel])return cache[rel];
@@ -518,6 +525,56 @@ async function api(method, path, body) {
 async function storeSourceFile(file) {   // keep a copy in Drive (Recipe Book Data/files) and return the source value that points at it by ID
   if (Drive === SimDrive) return 'Imported recipes/' + file.name;
   const j = await Drive.putBlob(file.name, file, file.type); return 'drive:' + j.id + '/' + file.name;
+}
+const SRC_ORDER = ['error', 'notfound', 'missing', 'trashed', 'several', 'byname', 'ok', 'none'];
+const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Trash', several: 'Found in several places', byname: 'Found by name', ok: 'Linked by ID', none: 'No source file' };
+async function checkSources() {
+  if (!Drive.fileInfo) return toast('Checking source files needs the Google Drive connection (not available in test mode)', true);
+  const o = document.createElement('div'); o.className = 'overlay';
+  o.innerHTML = '<div class="modal wide"><h3>Source files</h3><div class="pop-body"><p class="muted" id="sc-prog">Starting…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn small" id="sc-link" hidden></button><button class="btn primary" id="sc-close">Close</button></div></div>';
+  const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
+  o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); o.querySelector('#sc-close').onclick = close; document.addEventListener('keydown', onKey); document.body.appendChild(o);
+  const recs = S.recipes.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))), rows = [];
+  let done = 0, fatal = '';
+  const one = async r => {
+    const src = String(r.source || '').trim(), row = { r, src, st: 'none', where: '', id: '', fname: '' };
+    try {
+      let m;
+      if (!src) row.st = 'none';
+      else if ((m = /^drive:([^/]+)\//.exec(src))) {
+        const i = await Drive.fileInfo(m[1]);
+        if (!i) row.st = 'missing'; else if (i.trashed) { row.st = 'trashed'; row.where = 'Trash'; } else { row.st = 'ok'; row.where = (i.parents && i.parents[0]) ? await Drive.folderPath(i.parents[0]) : 'My Drive'; }
+      } else if (/^Imported recipes\//.test(src)) row.st = 'none';
+      else {
+        const L = await Drive.findByName(src);
+        if (!L.length) row.st = 'notfound';
+        else { row.st = L.length === 1 ? 'byname' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = (await Promise.all(L.slice(0, 3).map(f => f.parents && f.parents[0] ? Drive.folderPath(f.parents[0]) : 'My Drive'))).join('  |  ') + (L.length > 3 ? '  | …' : ''); }
+      }
+    } catch (e) { if (e.code === 'auth' || /allow reading/i.test(e.message || '')) fatal = e.message; row.st = 'error'; row.where = e.message || String(e); }
+    rows.push(row); done++; const pg = o.querySelector('#sc-prog'); if (pg) pg.textContent = 'Checking ' + done + ' of ' + recs.length + '…';
+  };
+  const queue = recs.slice(); await Promise.all([0, 1, 2, 3].map(async () => { while (queue.length && !fatal) await one(queue.shift()); }));
+  if (!o.isConnected) return;
+  if (fatal) { o.querySelector('.pop-body').innerHTML = '<p>' + esc(fatal) + '</p>'; return; }
+  rows.sort((a, b) => SRC_ORDER.indexOf(a.st) - SRC_ORDER.indexOf(b.st) || String(a.r.name).localeCompare(String(b.r.name)));
+  const cnt = {}; rows.forEach(x => cnt[x.st] = (cnt[x.st] || 0) + 1);
+  const sum = SRC_ORDER.filter(k => cnt[k]).map(k => cnt[k] + ' ' + SRC_LABEL[k].charAt(0).toLowerCase() + SRC_LABEL[k].slice(1)).join(', ');
+  const body = o.querySelector('.pop-body');
+  body.innerHTML = '<p><b>' + rows.length + ' recipes:</b> ' + esc(sum) + '.</p><div style="max-height:60vh;overflow:auto"><table><thead><tr><th>Recipe</th><th>Source</th><th>Status</th><th>Where</th></tr></thead><tbody>' +
+    rows.map(x => '<tr><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
+    '<p class="help">“Linked by ID” files keep opening if you rename or move them. “Found by name” files are located by searching your Drive for the file name, which stops working if the file is renamed or there is a second file with that name.</p>';
+  const cp = o.querySelector('#sc-copy'); cp.hidden = false;
+  cp.onclick = async () => { const t = rows.map(x => [x.r.name, linkName(x.src), SRC_LABEL[x.st], x.where].join('\t')).join('\n'); try { await navigator.clipboard.writeText(t); toast('Report copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
+  const fix = rows.filter(x => x.st === 'byname'), lk = o.querySelector('#sc-link');
+  if (fix.length) {
+    lk.hidden = false; lk.textContent = 'Link ' + fix.length + ' found file' + (fix.length > 1 ? 's' : '') + ' by ID';
+    lk.onclick = async () => {
+      if (!await confirmBox('<h3>Link ' + fix.length + ' file' + (fix.length > 1 ? 's' : '') + ' by ID?</h3><p>Each recipe’s Source file changes from a name to a direct link to the file found above. The files themselves are not touched.</p>', 'Link them')) return;
+      let n = 0; lk.disabled = true;
+      for (const x of fix) { try { const d = clone(x.r); d.source = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/recipes/' + x.r.id, d); n++; } catch (e) { toast(x.r.name + ': ' + e.message, true); } }
+      await load(); toast(n + ' linked'); close(); render();
+    };
+  }
 }
 const linkName = s => String(s || '').replace(/^drive:[^/]+\//, '');
 async function openFile(path, folder) {
@@ -2395,7 +2452,7 @@ function renderSettings() {
     <p class="help">Import replaces everything with the contents of an export file (from this version or from Recipe Book 2.x on Windows). Export first if you want a copy of what is here now.</p></div>
   <div class="card"><h2>Open file links</h2>
     <p class="help">“Open file” looks for the file by name in your Google Drive. The first time, Google asks you to allow Recipe Book to read your Drive files. Files added through Import are kept in <code>Recipe Book Data/files</code> and open directly.</p>
-    <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button></div></div>
+    <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button><button class="btn" id="d-check">Check source files</button></div></div>
   <div class="card"><h2>Trash</h2>${S.trash.length ? '<table>' + S.trash.map(t => '<tr><td>' + esc(t.name) + '</td><td class="muted">' + esc(t.category) + '</td><td class="muted">' + esc(t.updated_at) + '</td><td><button class="btn small" data-un="' + t.id + '">Restore</button> <button class="btn small danger" data-pg="' + t.id + '">Delete forever</button></td></tr>').join('') + '</table>' : '<p class="muted">Empty.</p>'}</div>
   <p class="muted">Recipe Book ${esc(info.version)}</p></div>`;
   const stShow = n => { V.stab = n; $$('.stab').forEach(d => { d.hidden = d.dataset.st !== n; }); $$('[data-stb]').forEach(b => b.classList.toggle('on', b.dataset.stb === n)); $('#st-save').hidden = n === 'data' || n === 'org'; };
@@ -2437,6 +2494,7 @@ function renderSettings() {
   $('#d-sync').onclick = async () => { await syncNow(); render(); toast('Synced'); };
   $('#d-status').onclick = showDiag;
   $('#d-signin').onclick = async () => { try { await Drive.signIn(); await syncNow(); render(); } catch (e) { toast('Sign-in did not complete: ' + (e.message || e), true); } };
+  $('#d-check').onclick = checkSources;
   $('#d-allow').onclick = async () => { try { if (!Drive.allowRead) throw new Error('Not available in test mode'); await Drive.allowRead(); toast('Allowed'); } catch (e) { toast(e.message || String(e), true); } };
   $('#d-export').onclick = () => {
     const blob = new Blob([JSON.stringify(exportData(), null, 1)], { type: 'application/json' }), a = document.createElement('a');
