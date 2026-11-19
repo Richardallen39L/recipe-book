@@ -71,6 +71,7 @@ main{flex:1;overflow:auto;padding:20px 28px 60px;min-width:0}
 .saltline .muted{color:var(--muted)}
 .saltline.clk{cursor:pointer}.saltline.clk:hover .tot{text-decoration:underline}
 .modal.wide{max-width:min(780px,95vw);width:95%}
+.upfi{color:#a15c00;cursor:pointer;margin-left:6px;font-size:.9em}.upfi.s{color:var(--muted)}.upfw{white-space:nowrap}
 .banner{background:var(--warn-bg);color:var(--ink);border-bottom:1px solid var(--warn);padding:9px 16px;display:flex;gap:12px;align-items:center;flex:none}
 .banner span{flex:1}
 .scale{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
@@ -235,7 +236,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.9.0';
+const VERSION = '3.10.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1184,7 +1185,7 @@ function renderRecipe() {
         <button class="btn small" id="a-hist">History</button>
         <button class="btn small danger" id="a-del">Delete</button>
       </div>
-      <div class="saltline" id="saltline"></div><div class="saltline" id="fatline"></div>
+      <div class="saltline" id="saltline"></div><div class="saltline" id="fatline"></div><div class="saltline" id="upfline" style="display:none"></div>
     </div>
   </div>
   <div class="card make noprint"><h2>Make this recipe</h2>
@@ -1245,6 +1246,80 @@ function renderRecipe() {
     delete scaleState[r.id]; await saveRecipe(r.id, d);
   };
 }
+const UPF_CATS = { phosphate: 'Phosphate', enhancer: 'Flavour enhancer', sugars: 'Glucose / maltodextrin', texture: 'Texture additive', protein: 'Protein isolate', emulsifier: 'Emulsifier', colour: 'Colour / smoke flavour', preserv: 'Preservative / antioxidant', blend: 'Ready-made blend', safety: 'Curing (safety, not counted)' };
+const UPF_DEFAULT = [
+  { cat: 'phosphate', kw: 'cutter phosphate, kutterhilfsmittel, kutterhilfe, phosphate, phosphat, diphosphate, polyphosphate, e450, e451, e452',
+    why: `Phosphate raises the pH of the meat so it holds more water and fat. It is what makes emulsified sausages (Leberkäse, Lyoner, Frankfurter types) juicy and firm. Not something found in a home kitchen.`,
+    sub: `Work cold (meat and mix under about 12 °C, use ice or ice water). Salt the meat first and rest it 12–24 hours before emulsifying. Use very fresh meat and keep the mix a little leaner. Add a binder such as skimmed milk powder or potato starch. A tiny pinch of bicarbonate can lift the pH but tastes soapy if overdone, so trial it. Expect a slightly less juicy, less springy result.` },
+  { cat: 'enhancer', kw: 'msg, monosodium glutamate, glutamate, glutamat, e621, yeast extract, hefeextrakt, hydrolysed, hydrolyzed, flavour enhancer, flavor enhancer, ribonucleotide, e627, e631, e635',
+    why: `Boosts savoury taste artificially.`,
+    sub: `Real umami: good stock or glace, mushroom or tomato powder, a little soy or Worcestershire sauce, and more of the recipe's own herbs and spices.` },
+  { cat: 'sugars', kw: 'glucose syrup, glucose, dextrose, maltodextrin, dextrin, corn syrup, invert sugar',
+    why: `Industrial sugars used as carriers, for browning and as feed for curing bacteria in seasoning and cure blends.`,
+    sub: `A small amount of ordinary sugar does the same job.` },
+  { cat: 'texture', kw: 'carrageenan, e407, xanthan, e415, guar, e412, modified starch, methylcellulose, e461, transglutaminase, gellan, e418, locust bean, e410',
+    why: `Added to hold water and give texture.`,
+    sub: `Potato or tapioca starch, skimmed milk powder, egg white, breadcrumb or rusk, or a lower water content and good emulsifying technique.` },
+  { cat: 'protein', kw: 'soy protein, soya protein, protein isolate, soy isolate, caseinate, whey protein, protein concentrate',
+    why: `Isolated proteins used as binders and fillers.`,
+    sub: `Skimmed milk powder or egg white, or more of the lean meat as the binder.` },
+  { cat: 'emulsifier', kw: 'emulsifier, e471, e472, e322, lecithin, polysorbate, e433, e435, mono and diglycerides, mono diglycerides',
+    why: `Helps fat and water mix and keeps products soft.`,
+    sub: `Egg yolk, butter or a little mustard act as natural emulsifiers.` },
+  { cat: 'colour', kw: 'colour, color, colouring, coloring, carmine, e120, caramel colour, e150, paprika extract, liquid smoke, smoke flavour, smoke flavouring, smoke flavor',
+    why: `Adds colour or smoke taste without the process.`,
+    sub: `Real smoking, ordinary paprika or beetroot powder for colour.` },
+  { cat: 'preserv', kw: 'sorbate, e202, benzoate, e211, sulphite, sulfite, metabisulphite, metabisulfite, e220, e223, sulphur dioxide, antioxidant, ascorbic acid, ascorbate, erythorbate, e300, e301, e315, e316, sodium lactate, sodium acetate, diacetate',
+    why: `Preservatives and antioxidants. Ascorbic acid (vitamin C) and erythorbate are the mildest; they speed curing and protect colour.`,
+    sub: `Keep it cold, use fresh ingredients, enough salt and the correct cure. Ascorbic acid is simply vitamin C if you want to keep it.` },
+  { cat: 'blend', kw: 'seasoning mix, sausage seasoning, bratwurst seasoning, wurstgewürz, spice mix, spice blend, premix, pre mix, brine mix, curing mix, bacon cure mix, ready made, readymade, stock cube, bouillon, gravy granules',
+    why: `Commercial blends often contain flavour enhancers, dextrose, anti-caking agents and colours. Check the label.`,
+    sub: `Make your own blend from the individual spices; the recipe's own spice list usually covers it.` },
+  { cat: 'safety', kw: 'curing salt, cure 1, cure 2, pink curing salt, prague powder, insta cure, nitrite, nitrate, e249, e250, e251, e252, pökelsalz, nitritpökelsalz, pokelsalz, celery powder, celery juice powder',
+    why: `Not an ultra-processed marker. Nitrite is a safety ingredient that stops botulism in cured meats. Celery powder is just a source of nitrate that becomes nitrite.`,
+    sub: `There is no safe substitute for curing. Do not simply leave it out of a cured product.` }
+];
+const upfList = () => { const x = S && S.settings && S.settings.upf_flags; return Array.isArray(x) && x.length ? x : UPF_DEFAULT; };
+const upfNorm = t => ' ' + String(t || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim() + ' ';
+function upfFlags(name) {
+  const n = upfNorm(name), out = [], seen = new Set();
+  upfList().forEach(f => {
+    if (f.on === false || seen.has(f.cat)) return;
+    const hit = String(f.kw || '').split(',').map(k => upfNorm(k).trim()).filter(Boolean).find(k => n.includes(' ' + k));
+    if (hit) { seen.add(f.cat); out.push(Object.assign({}, f, { hit })); }
+  });
+  return out;
+}
+const upfBadge = name => { const fl = upfFlags(name); if (!fl.length) return ''; const real = fl.filter(x => x.cat !== 'safety'); return '<span class="upfi' + (real.length ? '' : ' s') + '" title="' + esc((real.length ? 'Flagged: ' : 'Curing: ') + fl.map(x => UPF_CATS[x.cat] || x.cat).join(', ') + ' (click for detail)') + '">' + (real.length ? '⚑' : 'ⓘ') + '</span>'; };
+function upfScan(r, f) {
+  const items = r.ingredients.map(i => ({ i, fl: upfFlags(i.name), g: gramsOf(i, f) })).filter(x => x.fl.length);
+  const tot = r.ingredients.reduce((a, i) => a + (gramsOf(i, f) || 0), 0);
+  items.forEach(x => { x.pct = x.g != null && tot > 0 ? x.g / tot * 100 : null; });
+  return { items, tot, real: items.filter(x => x.fl.some(z => z.cat !== 'safety')), safety: items.filter(x => x.fl.every(z => z.cat === 'safety')) };
+}
+function drawUpf(r, f) {
+  const el = $('#upfline'); if (!el) return;
+  const q = upfScan(r, f);
+  if (!q.items.length) { el.style.display = 'none'; el.onclick = null; return; }
+  el.style.display = ''; el.classList.add('clk'); el.title = 'Click for the detail and workarounds'; el.onclick = () => showAdditives(r);
+  const pc = x => x.pct == null ? '' : ' (' + fmtNum(x.pct, 2) + '%)';
+  el.innerHTML = q.real.length
+    ? '<span class="tot" style="color:#a15c00">Additives: ' + q.real.length + ' flagged</span> <span class="muted">' + esc(q.real.slice(0, 3).map(x => x.i.name + pc(x)).join(', ') + (q.real.length > 3 ? ', …' : '')) + '</span>'
+    : '<span class="muted">Curing ingredient used (safety, not counted as an additive flag)</span>';
+}
+function showAdditives(r) {
+  const f = factorOf(r), q = upfScan(r, f); if (!q.items.length) return;
+  const o = document.createElement('div'); o.className = 'overlay';
+  let h = '<table><thead><tr><th>Ingredient</th><th>Flag</th><th>Why</th><th>Workaround</th></tr></thead><tbody>';
+  q.items.slice().sort((a, b) => (a.fl.every(z => z.cat === 'safety') ? 1 : 0) - (b.fl.every(z => z.cat === 'safety') ? 1 : 0)).forEach(x => x.fl.forEach(z => {
+    h += '<tr><td><b>' + esc(x.i.name) + '</b><div class="muted">' + (x.g != null ? esc(fmtNum(x.g, 1)) + ' g' : '') + (x.pct != null ? ' · ' + fmtNum(x.pct, 2) + '% of the mix' : '') + '</div></td><td>' + esc(UPF_CATS[z.cat] || z.cat) + '</td><td>' + esc(z.why || '') + '</td><td>' + esc(z.sub || '') + '</td></tr>';
+  }));
+  h += '</tbody></table><p class="help">A flag describes how a food is made (the idea behind “ultra-processed”), not whether it is harmful. Edit the words, the notes and the on/off switch in Settings → Ingredient flags.</p>';
+  o.innerHTML = '<div class="modal wide"><h3>Additive flags: ' + esc(r.name) + '</h3><div class="pop-body" style="max-height:62vh;overflow:auto">' + h + '</div><div class="row"><button class="btn primary">Close</button></div></div>';
+  const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
+  o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); o.querySelector('.row button').onclick = close;
+  document.addEventListener('keydown', onKey); document.body.appendChild(o);
+}
 function drawAmounts(r) {
   const f = factorOf(r), c = calc(r, f), base = calc(r, 1);
   const fe = $('#sc-factor'); if (fe) fe.textContent = '× ' + fmtNum(f, 3) + ' · batch ≈ ' + fmtNum(c.total) + ' g';
@@ -1255,13 +1330,15 @@ function drawAmounts(r) {
     if ((i.grp || '') !== last) { last = i.grp || ''; if (last) h += '<tr class="grp"><td colspan="' + ncol + '">' + esc(last) + '</td></tr>'; }
     const g = gramsOf(i, f);
     const pct = g != null && c.meat > 0 && i.kind !== 'meat' ? fmtNum(g / c.meat * 100, 2) + '%' : '';
-    h += '<tr class="' + (i.kind === 'salt' ? 'key' : '') + '"><td>' + esc(i.name) + '</td><td class="num">' + (i.amount == null ? '<span class="muted">–</span>' : esc(fmtNum(i.amount * f))) + '</td><td>' + esc(i.unit) + '</td>' + (sa ? '<td class="num muted">' + pct + '</td>' : '') + '<td class="note">' + esc(i.note) + '</td></tr>';
+    h += '<tr class="' + (i.kind === 'salt' ? 'key' : '') + '"><td>' + esc(i.name) + upfBadge(i.name) + '</td><td class="num">' + (i.amount == null ? '<span class="muted">–</span>' : esc(fmtNum(i.amount * f))) + '</td><td>' + esc(i.unit) + '</td>' + (sa ? '<td class="num muted">' + pct + '</td>' : '') + '<td class="note">' + esc(i.note) + '</td></tr>';
   });
   h += '</tbody></table>';
   $('#amounts').innerHTML = h;
+  $('#amounts').onclick = e => { if (e.target.closest('.upfi')) showAdditives(r); };
   if (sa) { drawSaltLine(r, f, c); drawChecks(r, c, base); } else drawSaltOther(r, f);
   drawFat(r, f);
   drawLoin(r, f);
+  drawUpf(r, f);
 }
 function showAnalysis(r, kind) {
   const sa = collOf(r) === 'sausage';
@@ -1430,7 +1507,7 @@ function drawRows() {
   tb.innerHTML = d.ingredients.map((i, n) => `<tr data-n="${n}" class="${i._flag ? 'flag' : ''}">
     <td class="mv">${i._flag ? '<span class="flagi" title="' + esc(i._flag) + ' (click to dismiss)">⚠</span>' : ''}<button class="mvb" data-act="up" title="Move up">▲</button><button class="mvb" data-act="down" title="Move down">▼</button></td>
     <td><input data-k="grp" list="dl-grp" value="${esc(i.grp)}" style="min-width:110px"></td>
-    <td><input data-k="name" value="${esc(i.name)}" style="min-width:170px"></td>
+    <td><input data-k="name" value="${esc(i.name)}" style="min-width:170px"><span class="upfw">${upfBadge(i.name)}</span></td>
     <td><input data-k="amount" inputmode="decimal" value="${i.amount == null ? '' : esc(i.amount)}" style="width:86px"></td>
     <td><input data-k="unit" list="dl-unit" value="${esc(i.unit)}" style="width:72px"></td>
     ${(d.collection || 'sausage') === 'sausage' ? `<td><select data-k="kind">${KINDS.map(k => `<option value="${k[0]}" ${i.kind === k[0] ? 'selected' : ''}>${k[1]}</option>`).join('')}</select></td>
@@ -1447,7 +1524,7 @@ function drawRows() {
     else if (k === 'fat_frac') { const x = parseFloat(String(v).replace(',', '.')); i.fat_frac = v.trim() === '' || isNaN(x) ? null : Math.min(Math.max(x, 0), 100) / 100; }
     else if (k === 'salt_frac') { const x = parseFloat(String(v).replace(',', '.')); i.salt_frac = v.trim() === '' || isNaN(x) ? null : x / 100; if ((d.collection || 'sausage') !== 'sausage') i.kind = i.salt_frac == null ? 'other' : 'saltmix'; }
     else if (k === 'kind') { i.kind = v; const sf = $('input[data-k=salt_frac]', tr); if (!sf) return; sf.disabled = v !== 'saltmix'; if (v !== 'saltmix') { sf.value = ''; i.salt_frac = null; } }
-    else { if (k === 'name' && i.name === d.ref) d.ref = v; i[k] = v; }
+    else { if (k === 'name' && i.name === d.ref) d.ref = v; i[k] = v; if (k === 'name') { const w = $('.upfw', tr); if (w) w.innerHTML = upfBadge(v); } }
     if (e.type === 'change' && (k === 'name' || k === 'kind')) refreshRef();
   };
   tb.onclick = e => {
@@ -2425,7 +2502,7 @@ async function newRef() {
 function renderSettings() {
   const tg = targets(), un = clone(units()), info = S.info, m = $('#main');
   m.innerHTML = `<div class="rhead"><h1>Settings</h1></div>
-  <div class="stabs"><button class="btn" data-stb="org">Organisation</button><button class="btn" data-stb="salt">Salt &amp; Fat</button><button class="btn" data-stb="meas">Measures</button><button class="btn" data-stb="data">Drive &amp; data</button><button class="btn primary" id="st-save" style="margin-left:auto">Save settings</button></div>
+  <div class="stabs"><button class="btn" data-stb="org">Organisation</button><button class="btn" data-stb="salt">Salt &amp; Fat</button><button class="btn" data-stb="flags">Ingredient flags</button><button class="btn" data-stb="meas">Measures</button><button class="btn" data-stb="data">Drive &amp; data</button><button class="btn primary" id="st-save" style="margin-left:auto">Save settings</button></div>
   <div class="stab" data-st="org">
   <div class="card" id="tabs-card"></div>
   <div class="card" id="cats-card"></div>
@@ -2449,6 +2526,11 @@ function renderSettings() {
     <p class="help">Typical salt and fat content (% by weight), the weight of one item (g), and the salt % to use when the ingredient is a made-up liquid (for example a stock cube dissolved in water), matched on the words in an ingredient's name; the longest match wins. They are everyday approximations: replace any of them with the figures from your own packs. An ingredient with a Salt % or Fat % typed in the recipe editor ignores this table.</p>
     <div style="max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;max-width:760px"><table class="edit" id="n-grid" style="margin:0"></table></div>
     <p><button class="btn small" id="n-add">＋ Add row</button> <button class="btn small" id="n-reset">Reset to the built-in list</button></p></div>
+  </div><div class="stab" data-st="flags">
+  <div class="card"><h2>Ingredient flags (additives and ultra-processed markers)</h2>
+    <p class="help">Recipes are checked for these words in the ingredient names. A match shows a flag next to the ingredient and an “Additives” line at the top of the recipe, with the notes and workarounds below. Words are separated by commas and matched at the start of a word, in any language you add. Switch a row off to stop flagging it. “Curing (safety)” rows are shown but not counted.</p>
+    <div style="max-height:460px;overflow:auto;border:1px solid var(--line);border-radius:8px"><table class="edit" id="fl-grid" style="margin:0"></table></div>
+    <p><button class="btn small" id="fl-add">＋ Add row</button> <button class="btn small" id="fl-reset">Reset to the built-in list</button></p></div>
   </div><div class="stab" data-st="meas">
   <div class="card"><h2>Units: weight of one counting unit (g)</h2><p class="help">Used when an amount is given as a count, such as each, clove or slice.</p>
     <table class="edit" id="cu-grid" style="max-width:420px"></table><p><button class="btn small" id="cu-add">＋ Add unit</button></p></div>
@@ -2481,6 +2563,13 @@ function renderSettings() {
   };
   $('#u-grid').onclick = e => { const b = e.target.closest('[data-ud]'); if (b) { delete un[b.dataset.ud]; ug(); } };
   $('#u-add').onclick = () => { un['unit' + (Object.keys(un).length + 1)] = 1; ug(); };
+  let flags = clone(upfList());
+  const fg = () => { $('#fl-grid').innerHTML = '<thead><tr><th>On</th><th>Words in the name</th><th>Type</th><th>Why it is flagged</th><th>Workaround</th><th></th></tr></thead><tbody>' + flags.map((x, k) => `<tr><td><input type="checkbox" data-fl="${k}" data-ff="on" ${x.on === false ? '' : 'checked'} style="width:auto"></td><td><textarea data-fl="${k}" data-ff="kw" rows="3" style="width:190px">${esc(x.kw || '')}</textarea></td><td><select data-fl="${k}" data-ff="cat">${Object.keys(UPF_CATS).map(c => `<option value="${c}" ${x.cat === c ? 'selected' : ''}>${esc(UPF_CATS[c])}</option>`).join('')}</select></td><td><textarea data-fl="${k}" data-ff="why" rows="3" style="width:230px">${esc(x.why || '')}</textarea></td><td><textarea data-fl="${k}" data-ff="sub" rows="3" style="width:250px">${esc(x.sub || '')}</textarea></td><td><button class="mvb" data-fd="${k}" title="Remove this row">✕</button></td></tr>`).join('') + '</tbody>'; };
+  fg();
+  $('#fl-grid').onchange = e => { const el = e.target, k = +el.dataset.fl; if (isNaN(k)) return; const ff = el.dataset.ff; flags[k][ff] = ff === 'on' ? el.checked : el.value; };
+  $('#fl-grid').onclick = e => { const b = e.target.closest('[data-fd]'); if (b) { flags.splice(+b.dataset.fd, 1); fg(); } };
+  $('#fl-add').onclick = () => { flags.unshift({ cat: 'enhancer', kw: '', why: '', sub: '' }); fg(); };
+  $('#fl-reset').onclick = async () => { if (await confirmBox('<h3>Reset the ingredient flags?</h3><p>Your changes to this list are replaced by the built-in list when you press Save settings.</p>', 'Reset', true)) { flags = clone(UPF_DEFAULT); fg(); } };
   let norms = clone(getNorms()), cu = clone(countUnits());
   const ng = () => { const c = (k, f, w) => `<td><input data-n="${k}" data-f="${f}" inputmode="decimal" value="${norms[k][f] == null ? '' : norms[k][f]}" style="width:${w}px"></td>`; $('#n-grid').innerHTML = '<thead><tr><th>Words in the name</th><th>Salt %</th><th>Fat %</th><th>Each (g)</th><th title="Salt % when it is a made-up liquid">Liquid salt %</th><th></th></tr></thead><tbody>' + norms.map((n, k) => `<tr><td><input data-n="${k}" data-f="match" value="${esc(n.match || '')}" style="width:170px"></td>${c(k, 'salt', 64)}${c(k, 'fat', 64)}${c(k, 'each', 64)}${c(k, 'liquid', 64)}<td><button class="x" data-nd="${k}" title="Remove">×</button></td></tr>`).join('') + '</tbody>'; };
   const cg = () => { $('#cu-grid').innerHTML = '<thead><tr><th>Unit</th><th>Grams each</th><th></th></tr></thead><tbody>' + Object.keys(cu).map(k => `<tr><td><input data-ck="${esc(k)}" value="${esc(k)}"></td><td><input data-cv="${esc(k)}" inputmode="decimal" value="${cu[k]}"></td><td><button class="x" data-cd="${esc(k)}" title="Remove">×</button></td></tr>`).join('') + '</tbody>'; };
@@ -2502,7 +2591,7 @@ function renderSettings() {
     const ft = { low: fl, high: fh, tabs: {} };
     $$('.f-tl').forEach(el => { const tab = el.dataset.tab, lo = el.value.trim(), hi = $('.f-th[data-tab="' + tab + '"]').value.trim(); if (lo !== '' || hi !== '') ft.tabs[tab] = [lo === '' ? null : +lo, hi === '' ? null : +hi]; });
     const cleanNorms = norms.filter(n => n.match && (n.salt != null || n.each != null || n.fat != null || n.liquid != null));
-    try { await api('PUT', '/api/settings', { salt_targets: { fresh: [f0, f1], cured: [c0, c1] }, units: un, salt_targets_other: ot, fat_targets: ft, ingredient_norms: cleanNorms, norms_version: NORMS_VERSION, count_units: cu }); await load(); render(); toast('Settings saved'); } catch (e) { toast(e.message, true); }
+    try { await api('PUT', '/api/settings', { salt_targets: { fresh: [f0, f1], cured: [c0, c1] }, units: un, salt_targets_other: ot, fat_targets: ft, ingredient_norms: cleanNorms, norms_version: NORMS_VERSION, count_units: cu, upf_flags: flags.filter(x => String(x.kw || '').trim()) }); await load(); render(); toast('Settings saved'); } catch (e) { toast(e.message, true); }
   };
   drawTabsCard(); drawCatsCard();
   const stNow = () => { const e = $('#sync-now-state'); if (e) e.textContent = ($('#sync') || {}).textContent || ''; }; stNow();
