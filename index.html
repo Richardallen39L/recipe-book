@@ -235,7 +235,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.5.0';
+const VERSION = '3.6.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -514,6 +514,10 @@ async function api(method, path, body) {
     }
   }
   throw new Error('That action is not available in this version (' + method + ' ' + path + ')');
+}
+async function storeSourceFile(file) {   // keep a copy in Drive (Recipe Book Data/files) and return the source value that points at it by ID
+  if (Drive === SimDrive) return 'Imported recipes/' + file.name;
+  const j = await Drive.putBlob(file.name, file, file.type); return 'drive:' + j.id + '/' + file.name;
 }
 const linkName = s => String(s || '').replace(/^drive:[^/]+\//, '');
 async function openFile(path, folder) {
@@ -1134,7 +1138,7 @@ function renderRecipe() {
   <div class="card" id="fatan-card" style="display:none"><h2>Fat analysis</h2><div id="fatan"></div></div>
   ${r.method.trim() ? `<div class="card"><h2>Method</h2><div class="rich">${steps(r.method)}</div></div>` : ''}
   ${r.notes.trim() ? `<div class="card"><h2>Notes</h2><div class="rich">${rich(r.notes)}</div></div>` : ''}
-  ${r.source ? `<div class="card noprint"><h2>Source file</h2><div class="filebar"><code>${esc(linkName(r.source))}</code><button class="btn small" id="a-src">Open file</button><button class="btn small" id="a-srcf">Show in folder</button></div></div>` : ''}
+  <div class="card noprint"><h2>Source file</h2><div class="filebar">${r.source ? `<code>${esc(linkName(r.source))}</code><button class="btn small" id="a-src">Open file</button><button class="btn small" id="a-srcf">Show in folder</button><button class="btn small" id="a-srcn">Replace…</button>` : `<span class="muted">No source file yet.</span><button class="btn small" id="a-srcn">Attach file…</button>`}<input type="file" id="a-srcpick" hidden></div></div>
   <p class="muted noprint" style="font-size:12px">Last saved ${esc(r.updated_at)}</p>`;
   drawAmounts(r);
   [['#saltline', 'salt', 'salt'], ['#fatline', 'fat', 'fat']].forEach(([sel, kind, w]) => { const e = $(sel); if (!e) return; e.classList.add('clk'); e.title = 'Click for the detailed ' + w + ' analysis'; e.onclick = () => showAnalysis(r, kind); });
@@ -1144,6 +1148,8 @@ function renderRecipe() {
   addBackBar();
   $('#a-print').onclick = () => window.print();
   if ($('#a-src')) { $('#a-src').onclick = () => openFile(r.source); $('#a-srcf').onclick = () => openFile(r.source, true); }
+  $('#a-srcn').onclick = () => $('#a-srcpick').click();
+  $('#a-srcpick').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { toast('Copying the file to Drive…'); const d = clone(r); d.source = await storeSourceFile(f); await saveRecipe(r.id, d); } catch (er) { toast('The file was not attached: ' + er.message, true); } };
   $('#a-hist').onclick = () => showHistory(r);
   $('#a-del').onclick = async () => {
     if (await confirmBox('<h3>Delete “' + esc(r.name) + '”?</h3><p>It moves to the Trash. You can bring it back from Settings → Trash.</p>', 'Delete', true)) {
@@ -1285,7 +1291,8 @@ function renderEditor() {
     <label class="f">Name<input id="e-name" value="${esc(d.name)}" placeholder="e.g. Cumberland"></label>
     <label class="f">Category<select id="e-cat">${catOpts}</select><input id="e-cat-new" placeholder="New category name" hidden style="margin-top:6px"></label>
     <label class="f">Tab<select id="e-coll">${COLLS.filter(c => c[0] !== 'notes').map(c => `<option value="${c[0]}" ${(d.collection || 'sausage') === c[0] ? 'selected' : ''}>${c[1]}</option>`).join('')}</select></label>
-    <label class="f">Source file (a file name or path; Open file finds it in your Drive)<input id="e-src" value="${esc(d.source || '')}" placeholder="e.g. Recipes/Salmon/Brine for Smoking Salmon.doc"></label>
+    <label class="f">Source file (attach one, or type a file name; Open file finds it in your Drive)<input id="e-src" value="${esc(d.source || '')}" placeholder="none yet"></label>
+    <div class="row-inline" style="margin:-4px 0 8px"><button class="btn small" id="e-srcpick" type="button">Attach file…</button><button class="btn small" id="e-srcclr" type="button">Clear</button><input type="file" id="e-srcfile" hidden></div>
     ${sa ? `<label class="f">Salt rule<select id="e-class">
       <option value="fresh" ${d.salt_class === 'fresh' ? 'selected' : ''}>Fresh sausage (${targets().fresh.join('–')}%)</option>
       <option value="cured" ${d.salt_class === 'cured' ? 'selected' : ''}>Cured / smoked (${targets().cured.join('–')}%)</option>
@@ -1316,6 +1323,9 @@ function renderEditor() {
   $('#e-cat-new').oninput = e => { d.category = e.target.value; mark(); };
   if ($('#e-class')) { $('#e-class').onchange = e => { d.salt_class = e.target.value; mark(); }; $('#e-basis').onchange = e => { d.salt_basis = e.target.value; mark(); }; }
   $('#e-src').oninput = e => { d.source = e.target.value; mark(); };
+  $('#e-srcpick').onclick = () => $('#e-srcfile').click();
+  $('#e-srcclr').onclick = () => { d.source = ''; $('#e-src').value = ''; mark(); };
+  $('#e-srcfile').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { toast('Copying the file to Drive…'); d.source = await storeSourceFile(f); $('#e-src').value = linkName(d.source); mark(); toast('Attached. Save the recipe to keep it.'); } catch (er) { toast('The file was not attached: ' + er.message, true); } };
   $('#e-coll').onchange = e => { d.collection = e.target.value; if (d.collection !== 'sausage') d.salt_class = 'none'; else if (d.salt_class === 'none') d.salt_class = 'fresh'; if (V.imp && d.collection === 'sausage') IMP.reKinds(d); mark(); renderEditor(); };
   $('#e-ref').onchange = e => { d.ref = e.target.value; mark(); };
   $('#e-fav').onchange = e => { d.favorite = e.target.checked; mark(); };

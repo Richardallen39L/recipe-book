@@ -1,7 +1,10 @@
-Recipe Book v3.5.0 (web, Google Drive)
+Recipe Book v3.6.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.5.0
+New in 3.6.0
+- Every recipe now shows a Source file card, even when it has none ("No source file yet" with an Attach file button). Attach file copies the file into Drive (Recipe Book Data/files) and links it by ID, so it still opens if the file is renamed or moved. The editor has Attach file and Clear buttons beside the Source file box.
+
+In 3.5.0
 - Ingredient norms: fat % for pork loin 17.4, pork shoulder 24.3, pork belly 26.8 and back fat 100 (also "belly pork", "backfat", "fat back"). Settings you saved earlier are kept; only these rows are updated.
 - A recipe with pork shoulder or belly now shows a card "Using loin and back fat instead": the loin and back fat weights that give the same total weight and the same fat as the cut in the recipe. It follows the scaling.
 
