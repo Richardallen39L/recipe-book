@@ -1,7 +1,11 @@
-Recipe Book v3.10.1 (web, Google Drive)
+Recipe Book v3.11.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.10.1
+New in 3.11.0
+- Open file and Check source files now look first in Drive -> Recipe Book Data -> files and all its sub-folders for a linked file given by name or path. Names are compared ignoring case, punctuation and the file extension, so "1001 Sausage Recipes - Index.xlsx" finds "10-01 Sausage Recipes - Index.xlsx"; when several files match, the one whose folder matches the folder in the stored path wins. If nothing is found there, the whole Drive is searched as before.
+- "Make N name-based links permanent" now also covers files linked from notes.
+
+In 3.10.1
 - Open file no longer trusts an old remembered link: it checks the remembered file still exists (not deleted or in the Trash) and otherwise searches Drive again, preferring the newest copy. This fixes links that stopped working after files were moved or re-uploaded.
 - Check source files now also lists the files linked from the Notes tab.
 

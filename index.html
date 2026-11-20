@@ -236,7 +236,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.10.1';
+const VERSION = '3.11.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -285,8 +285,20 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
    const b='rb'+Math.random().toString(36).slice(2),head=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[ffid]})}\r\n--${b}\r\nContent-Type: ${mime||'application/octet-stream'}\r\n\r\n`;
    const r=await api(`${UP}/files?uploadType=multipart&fields=id,name`,{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:new Blob([head,blob,`\r\n--${b}--`])});const j=await r.json();note('uploaded file '+name);return j},
   async allowRead(){await tokenR();return true},
+  async treeFiles(){if(this._tree&&Date.now()-this._tree.t<300000)return this._tree.files;
+   const t=await tokenR(),H={headers:{Authorization:'Bearer '+t}},FOLD='application/vnd.google-apps.folder',files=[];
+   const list=async q=>{let out=[],pt='';do{const r=await fetch(`${API}/files?q=${enc(q)}&fields=nextPageToken,files(id,name,parents,mimeType,webViewLink)&pageSize=1000&orderBy=modifiedTime%20desc${pt?'&pageToken='+enc(pt):''}`,H);if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. Tap Settings, Allow access to my Drive files, then try again.')}throw err('http','Drive '+r.status)}const j=await r.json();out=out.concat(j.files||[]);pt=j.nextPageToken||''}while(pt);return out};
+   const queue=[];
+   for(const rt of await list("name='Recipe Book Data' and mimeType='"+FOLD+"' and trashed=false")){for(const k of await list("'"+rt.id+"' in parents and trashed=false and mimeType='"+FOLD+"'")){if(k.name==='files')queue.push({id:k.id,path:'Recipe Book Data / files'})}}
+   let n=0;while(queue.length&&n++<300){const f=queue.shift();for(const c of await list("'"+f.id+"' in parents and trashed=false")){if(c.mimeType===FOLD)queue.push({id:c.id,path:f.path+' / '+c.name});else files.push(Object.assign({},c,{path:f.path}))}}
+   this._tree={t:Date.now(),files};return files},
+  async findIn(rel){const files=await this.treeFiles(),parts=String(rel).replace(/\\/g,'/').split('/'),base=parts.pop(),nz=x=>String(x).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^\p{L}\p{N}]/gu,''),ext=x=>((/\.([^.]+)$/.exec(x)||[])[1]||'').toLowerCase();
+   if(!nz(base))return [];let L=files.filter(f=>nz(f.name)===nz(base));
+   if(L.length>1){const d=parts.map(x=>x.toLowerCase()).filter(Boolean),sc=f=>(ext(f.name)===ext(base)?2:0)+(d.length&&d.every(x=>String(f.path).toLowerCase().includes(x))?1:0);L=L.slice().sort((a,b)=>sc(b)-sc(a))}
+   return L},
+  async findByName(rel){const T=await this.findIn(rel).catch(e=>{if(e.code==='auth')throw e;return[]});if(T.length)return T;return this.findByNameAny(rel)},
   async fileInfo(id){const t=await tokenR(),r=await fetch(`${API}/files/${id}?fields=id,name,parents,trashed`,{headers:{Authorization:'Bearer '+t}});if(r.status===404)return null;if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. Tap Settings, Allow access to my Drive files, then try again.')}throw err('http','Drive '+r.status)}return r.json()},
-  async findByName(rel){const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
+  async findByNameAny(rel){const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
    const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25&orderBy=modifiedTime%20desc`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
    let L=await rq("name='"+q(base)+"'"+NF);
    if(!L.length){const nz=s=>String(s).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^a-z0-9]/g,''),stem=base.replace(/\.[^.]+$/,'');L=(await rq("name contains '"+q(stem)+"'"+NF)).filter(f=>nz(f.name)===nz(base))}
@@ -295,6 +307,7 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
   async resolve(rel){let mm=/^drive:([^/]+)\//.exec(rel);
    if(mm){let parent='';try{parent=((await jq(`${API}/files/${mm[1]}?fields=parents`)).parents||[])[0]||''}catch(e){}return{link:'https://drive.google.com/file/d/'+mm[1]+'/view',parent}}
    let cache={};try{cache=JSON.parse(localStorage.getItem('rb2:lk'))||{}}catch(e){}if(cache[rel]&&cache[rel].id){try{const ci=await this.fileInfo(cache[rel].id);if(ci&&!ci.trashed)return cache[rel]}catch(e){}}
+    try{const T=await this.findIn(rel);if(T.length){const out={link:T[0].webViewLink,parent:(T[0].parents||[])[0]||'',id:T[0].id};cache[rel]=out;try{localStorage.setItem('rb2:lk',JSON.stringify(cache))}catch(e){}return out}}catch(e){if(e.code==='auth')throw e}
    const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
    const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25&orderBy=modifiedTime%20desc`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
    let L=await rq("name='"+q(base)+"'"+NF);
@@ -549,7 +562,7 @@ async function checkSources() {
       else {
         const L = await Drive.findByName(src);
         if (!L.length) row.st = 'notfound';
-        else { row.st = L.length === 1 ? 'byname' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = (await Promise.all(L.slice(0, 3).map(f => f.parents && f.parents[0] ? Drive.folderPath(f.parents[0]) : 'My Drive'))).join('  |  ') + (L.length > 3 ? '  | …' : ''); }
+        else { row.st = L.length === 1 ? 'byname' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = (await Promise.all(L.slice(0, 3).map(f => f.path ? f.path : f.parents && f.parents[0] ? Drive.folderPath(f.parents[0]) : 'My Drive'))).join('  |  ') + (L.length > 3 ? '  | …' : ''); }
       }
     } catch (e) { if (e.code === 'auth' || /allow reading/i.test(e.message || '')) fatal = e.message; row.st = 'error'; row.where = e.message || String(e); }
     rows.push(row); done++; const pg = o.querySelector('#sc-prog'); if (pg) pg.textContent = 'Checking ' + done + ' of ' + recs.length + '…';
@@ -581,13 +594,13 @@ async function checkSources() {
   };
   const cp = o.querySelector('#sc-copy'); cp.hidden = false;
   cp.onclick = async () => { const t = rows.map(x => [x.r.name, linkName(x.src), SRC_LABEL[x.st], x.where].join('\t')).join('\n'); try { await navigator.clipboard.writeText(t); toast('Report copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
-  const fix = rows.filter(x => x.st === 'byname' && !x.r.isNote), lk = o.querySelector('#sc-link');
+  const fix = rows.filter(x => x.st === 'byname'), lk = o.querySelector('#sc-link');
   if (fix.length) {
     lk.hidden = false; lk.textContent = 'Make ' + fix.length + ' name-based link' + (fix.length > 1 ? 's' : '') + ' permanent (optional)';
     lk.onclick = async () => {
-      if (!await confirmBox('<h3>Link ' + fix.length + ' file' + (fix.length > 1 ? 's' : '') + ' by ID?</h3><p>Each recipe’s Source file changes from a name to a direct link to the file found above. The files themselves are not touched.</p>', 'Link them')) return;
+      if (!await confirmBox('<h3>Link ' + fix.length + ' file' + (fix.length > 1 ? 's' : '') + ' by ID?</h3><p>Each recipe’s Source file or note’s linked file changes from a name to a direct link to the file found above. The files themselves are not touched.</p>', 'Link them')) return;
       let n = 0; lk.disabled = true;
-      for (const x of fix) { try { const d = clone(x.r); d.source = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/recipes/' + x.r.id, d); n++; } catch (e) { toast(x.r.name + ': ' + e.message, true); } }
+      for (const x of fix) { try { if (x.r.isNote) { const nn = clone(S.notes.find(q => q.id === x.r.id)); nn.file_path = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/notes/' + x.r.id, nn); } else { const d = clone(x.r); d.source = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/recipes/' + x.r.id, d); } n++; } catch (e) { toast(x.r.name + ': ' + e.message, true); } }
       await load(); toast(n + ' linked'); close(); render();
     };
   }
