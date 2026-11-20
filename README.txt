@@ -1,7 +1,11 @@
-Recipe Book v3.10.0 (web, Google Drive)
+Recipe Book v3.10.1 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.10.0
+New in 3.10.1
+- Open file no longer trusts an old remembered link: it checks the remembered file still exists (not deleted or in the Trash) and otherwise searches Drive again, preferring the newest copy. This fixes links that stopped working after files were moved or re-uploaded.
+- Check source files now also lists the files linked from the Notes tab.
+
+In 3.10.0
 - Ingredient flags: ingredients that are typical of ultra-processed food (cutter phosphate / Kutterhilfsmittel, flavour enhancers such as MSG and yeast extract, glucose syrup / maltodextrin / dextrose, carrageenan, xanthan and other texture additives, protein isolates, emulsifiers, colours and smoke flavour, preservatives, ready-made seasoning blends) get a flag next to the ingredient, in the recipe editor as you type, and an "Additives" line at the top of the recipe. Click it for the list with the share of the mix, why it is flagged and a workaround. Curing salt / nitrite is shown but not counted (safety ingredient, no substitute).
 - Settings -> Ingredient flags: edit the words (any language), the notes, switch rows off or add your own.
 

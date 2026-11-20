@@ -236,7 +236,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.10.0';
+const VERSION = '3.10.1';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -287,20 +287,20 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
   async allowRead(){await tokenR();return true},
   async fileInfo(id){const t=await tokenR(),r=await fetch(`${API}/files/${id}?fields=id,name,parents,trashed`,{headers:{Authorization:'Bearer '+t}});if(r.status===404)return null;if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. Tap Settings, Allow access to my Drive files, then try again.')}throw err('http','Drive '+r.status)}return r.json()},
   async findByName(rel){const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
-   const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
+   const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25&orderBy=modifiedTime%20desc`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
    let L=await rq("name='"+q(base)+"'"+NF);
    if(!L.length){const nz=s=>String(s).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^a-z0-9]/g,''),stem=base.replace(/\.[^.]+$/,'');L=(await rq("name contains '"+q(stem)+"'"+NF)).filter(f=>nz(f.name)===nz(base))}
    return L},
   async folderPath(id){this._fp=this._fp||{};const out=[];let cur=id,n=0;while(cur&&n++<6){let f=this._fp[cur];if(!f){const i=await this.fileInfo(cur).catch(()=>null);f=this._fp[cur]=i?{name:i.name,parent:(i.parents||[])[0]||''}:{name:'…',parent:''}}out.unshift(f.name);cur=f.parent}return out.join(' / ')},
   async resolve(rel){let mm=/^drive:([^/]+)\//.exec(rel);
    if(mm){let parent='';try{parent=((await jq(`${API}/files/${mm[1]}?fields=parents`)).parents||[])[0]||''}catch(e){}return{link:'https://drive.google.com/file/d/'+mm[1]+'/view',parent}}
-   let cache={};try{cache=JSON.parse(localStorage.getItem('rb2:lk'))||{}}catch(e){}if(cache[rel])return cache[rel];
+   let cache={};try{cache=JSON.parse(localStorage.getItem('rb2:lk'))||{}}catch(e){}if(cache[rel]&&cache[rel].id){try{const ci=await this.fileInfo(cache[rel].id);if(ci&&!ci.trashed)return cache[rel]}catch(e){}}
    const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
-   const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
+   const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25&orderBy=modifiedTime%20desc`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
    let L=await rq("name='"+q(base)+"'"+NF);
    if(!L.length){const nz=s=>String(s).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^a-z0-9]/g,''),stem=base.replace(/\.[^.]+$/,'');L=(await rq("name contains '"+q(stem)+"'"+NF)).filter(f=>nz(f.name)===nz(base))}
    if(!L.length)throw err('http','That file was not found in your Google Drive ('+base+')');
-   const out={link:L[0].webViewLink,parent:(L[0].parents||[])[0]||''};cache[rel]=out;try{localStorage.setItem('rb2:lk',JSON.stringify(cache))}catch(e){}return out},
+   const out={link:L[0].webViewLink,parent:(L[0].parents||[])[0]||'',id:L[0].id};cache[rel]=out;try{localStorage.setItem('rb2:lk',JSON.stringify(cache))}catch(e){}return out},
   async get(p){if(!fid[p])throw err('http','no such file '+p,404);return (await api(`${API}/files/${fid[p]}?alt=media`)).text()},
   async put(p,t,retry){const m=await folders(),[dir,name]=split(p),mime=p.endsWith('.json')?'application/json':'text/html';
    if(fid[p]){try{const r=await api(`${UP}/files/${fid[p]}?uploadType=media&fields=modifiedTime`,{method:'PATCH',headers:{'Content-Type':mime+'; charset=UTF-8'},body:t});const mt=Date.parse((await r.json()).modifiedTime);note('updated '+p+' ('+t.length+' chars)');return mt}catch(e){note('FAILED update '+p+': '+(e.message||e).toString().slice(0,120));if(e.status===404&&!retry){delete fid[p];return this.put(p,t,1)}throw e}}
@@ -535,7 +535,7 @@ async function checkSources() {
   o.innerHTML = '<div class="modal wide"><h3>Source files</h3><div class="pop-body"><p class="muted" id="sc-prog">Starting…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn small" id="sc-link" hidden></button><button class="btn primary" id="sc-close">Close</button></div></div>';
   const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
   o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); o.querySelector('#sc-close').onclick = close; document.addEventListener('keydown', onKey); document.body.appendChild(o);
-  const recs = S.recipes.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))), rows = [];
+  const recs = S.recipes.slice().concat((S.notes || []).filter(n => String(n.file_path || '').trim()).map(n => ({ id: n.id, name: n.title, source: n.file_path, isNote: true }))).sort((a, b) => String(a.name).localeCompare(String(b.name))), rows = [];
   let done = 0, fatal = '';
   const one = async r => {
     const src = String(r.source || '').trim(), row = { r, src, st: 'none', where: '', id: '', fname: '' };
@@ -561,10 +561,10 @@ async function checkSources() {
   const cnt = {}; rows.forEach(x => cnt[x.st] = (cnt[x.st] || 0) + 1);
   const sum = SRC_ORDER.filter(k => cnt[k]).map(k => cnt[k] + ' ' + SRC_LABEL[k].charAt(0).toLowerCase() + SRC_LABEL[k].slice(1)).join(', ');
   const body = o.querySelector('.pop-body');
-  const NEED = ['none', 'notfound', 'missing', 'trashed', 'several'], tabOf = r => ((COLLS.find(c => c[0] === collOf(r)) || [])[1] || '');
-  body.innerHTML = '<p><b>' + rows.length + ' recipes:</b> ' + esc(sum) + '.</p><div style="max-height:52vh;overflow:auto"><table><thead><tr><th></th><th>Recipe</th><th>Tab</th><th>Source</th><th>Status</th><th>Where</th></tr></thead><tbody>' +
-    rows.map(x => '<tr><td>' + (NEED.includes(x.st) ? '<input type="checkbox" class="sc-tick" data-st="' + x.st + '" data-tab="' + collOf(x.r) + '" data-r="' + x.r.id + '" style="width:auto">' : '') + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
-    (rows.some(x => NEED.includes(x.st)) ? '<div class="row-inline" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button class="btn small" id="sc-tickall" type="button">Tick all with no source file in</button><select id="sc-tab" style="width:auto"><option value="">all tabs</option>' + [...new Set(rows.filter(x => x.st === 'none').map(x => collOf(x.r)))].map(t => '<option value="' + t + '">' + esc(((COLLS.find(c => c[0] === t) || [])[1]) || t) + '</option>').join('') + '</select><input id="sc-name" placeholder="File name, e.g. Sausage_Calculator_v30.xlsm" style="flex:1;min-width:220px"><button class="btn small" id="sc-set" type="button">Use this file for the ticked recipes</button></div>' : '') +
+  const NEED = ['none', 'notfound', 'missing', 'trashed', 'several'], tabOf = r => r.isNote ? '📝 Notes' : ((COLLS.find(c => c[0] === collOf(r)) || [])[1] || '');
+  body.innerHTML = '<p><b>' + rows.length + ' items (recipes and notes):</b> ' + esc(sum) + '.</p><div style="max-height:52vh;overflow:auto"><table><thead><tr><th></th><th>Recipe</th><th>Tab</th><th>Source</th><th>Status</th><th>Where</th></tr></thead><tbody>' +
+    rows.map(x => '<tr><td>' + (NEED.includes(x.st) && !x.r.isNote ? '<input type="checkbox" class="sc-tick" data-st="' + x.st + '" data-tab="' + collOf(x.r) + '" data-r="' + x.r.id + '" style="width:auto">' : '') + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
+    (rows.some(x => NEED.includes(x.st) && !x.r.isNote) ? '<div class="row-inline" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button class="btn small" id="sc-tickall" type="button">Tick all with no source file in</button><select id="sc-tab" style="width:auto"><option value="">all tabs</option>' + [...new Set(rows.filter(x => x.st === 'none' && !x.r.isNote).map(x => collOf(x.r)))].map(t => '<option value="' + t + '">' + esc(((COLLS.find(c => c[0] === t) || [])[1]) || t) + '</option>').join('') + '</select><input id="sc-name" placeholder="File name, e.g. Sausage_Calculator_v30.xlsm" style="flex:1;min-width:220px"><button class="btn small" id="sc-set" type="button">Use this file for the ticked recipes</button></div>' : '') +
     '<p class="help">“Linked by ID” files keep opening if you rename or move them. “Found by name” is fine as it stands; it only stops working if the file is renamed or a second file gets the same name, and the optional button above turns those into ID links. For recipes that only exist in a workbook (for example the Sausage Calculator), tick them, type the workbook’s file name and use it as their source.</p>';
   const ta = o.querySelector('#sc-tickall'); if (ta) ta.onclick = () => { const tb = o.querySelector('#sc-tab').value; o.querySelectorAll('.sc-tick[data-st="none"]').forEach(c => { if (!tb || c.dataset.tab === tb) c.checked = true; }); };
   const st = o.querySelector('#sc-set'); if (st) st.onclick = async () => {
@@ -581,7 +581,7 @@ async function checkSources() {
   };
   const cp = o.querySelector('#sc-copy'); cp.hidden = false;
   cp.onclick = async () => { const t = rows.map(x => [x.r.name, linkName(x.src), SRC_LABEL[x.st], x.where].join('\t')).join('\n'); try { await navigator.clipboard.writeText(t); toast('Report copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
-  const fix = rows.filter(x => x.st === 'byname'), lk = o.querySelector('#sc-link');
+  const fix = rows.filter(x => x.st === 'byname' && !x.r.isNote), lk = o.querySelector('#sc-link');
   if (fix.length) {
     lk.hidden = false; lk.textContent = 'Make ' + fix.length + ' name-based link' + (fix.length > 1 ? 's' : '') + ' permanent (optional)';
     lk.onclick = async () => {
