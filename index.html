@@ -236,7 +236,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.11.1';
+const VERSION = '3.12.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -294,6 +294,10 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
    this._tree={t:Date.now(),files};this._treeInfo={roots:nr,filesFolders:nf,folders:dirs,count:files.length};return files},
   async findIn(rel){const files=await this.treeFiles(),parts=String(rel).replace(/\\/g,'/').split('/'),base=parts.pop(),nz=x=>String(x).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^\p{L}\p{N}]/gu,''),ext=x=>((/\.([^.]+)$/.exec(x)||[])[1]||'').toLowerCase();
    if(!nz(base))return [];let L=files.filter(f=>nz(f.name)===nz(base));
+   if(!L.length){const tk=x=>new Set(String(x).toLowerCase().replace(/\.[^.]+$/,'').split(/[^\p{L}\p{N}]+/u).filter(Boolean)),W=tk(base);
+    if(W.size){const sc=files.map(f=>{const F=tk(f.name);let i=0;W.forEach(w=>{if(F.has(w))i++});const u=W.size+F.size-i;return{f,i,j:u?i/u:0}}).filter(x=>x.i>=Math.min(2,W.size)&&x.j>=0.6).sort((a,b)=>b.j-a.j);
+     if(sc.length)L=(sc.length===1||sc[0].j>sc[1].j?[sc[0]]:sc.slice(0,3)).map(x=>Object.assign({},x.f,{approx:true}))}
+    return L}
    if(L.length>1){const d=parts.map(x=>x.toLowerCase()).filter(Boolean),sc=f=>(ext(f.name)===ext(base)?2:0)+(d.length&&d.every(x=>String(f.path).toLowerCase().includes(x))?1:0);L=L.slice().sort((a,b)=>sc(b)-sc(a))}
    return L},
   async findByName(rel){this._treeErr='';const T=await this.findIn(rel).catch(e=>{if(e.code==='auth')throw e;this._treeErr=e.message||String(e);return[]});if(T.length)return T;return this.findByNameAny(rel)},
@@ -307,7 +311,7 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
   async resolve(rel){let mm=/^drive:([^/]+)\//.exec(rel);
    if(mm){let parent='';try{parent=((await jq(`${API}/files/${mm[1]}?fields=parents`)).parents||[])[0]||''}catch(e){}return{link:'https://drive.google.com/file/d/'+mm[1]+'/view',parent}}
    let cache={};try{cache=JSON.parse(localStorage.getItem('rb2:lk'))||{}}catch(e){}if(cache[rel]&&cache[rel].id){try{const ci=await this.fileInfo(cache[rel].id);if(ci&&!ci.trashed)return cache[rel]}catch(e){}}
-    try{const T=await this.findIn(rel);if(T.length){const out={link:T[0].webViewLink,parent:(T[0].parents||[])[0]||'',id:T[0].id};cache[rel]=out;try{localStorage.setItem('rb2:lk',JSON.stringify(cache))}catch(e){}return out}}catch(e){if(e.code==='auth')throw e}
+    try{const T=await this.findIn(rel);if(T.length&&(!T[0].approx||T.length===1)){const out={link:T[0].webViewLink,parent:(T[0].parents||[])[0]||'',id:T[0].id};cache[rel]=out;try{localStorage.setItem('rb2:lk',JSON.stringify(cache))}catch(e){}return out}}catch(e){if(e.code==='auth')throw e}
    const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
    const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25&orderBy=modifiedTime%20desc`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
    let L=await rq("name='"+q(base)+"'"+NF);
@@ -540,8 +544,8 @@ async function storeSourceFile(file) {   // keep a copy in Drive (Recipe Book Da
   if (Drive === SimDrive) return 'Imported recipes/' + file.name;
   const j = await Drive.putBlob(file.name, file, file.type); return 'drive:' + j.id + '/' + file.name;
 }
-const SRC_ORDER = ['error', 'notfound', 'missing', 'trashed', 'several', 'none', 'byname', 'ok'];
-const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Trash', several: 'Found in several places', byname: 'Found by name (fine)', ok: 'Linked by ID', none: 'No source file' };
+const SRC_ORDER = ['error', 'notfound', 'missing', 'trashed', 'several', 'maybe', 'none', 'byname', 'ok'];
+const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Trash', several: 'Found in several places', maybe: 'Possible match (please check)', byname: 'Found by name (fine)', ok: 'Linked by ID', none: 'No source file' };
 const closestNames = (rel, files) => {
   const tok = x => String(x).toLowerCase().replace(/\.[^.]+$/, '').split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 1), want = tok(String(rel).replace(/\\/g, '/').split('/').pop());
   if (!want.length) return [];
@@ -568,7 +572,7 @@ async function showDriveScan() {
 async function checkSources() {
   if (!Drive.fileInfo) return toast('Checking source files needs the Google Drive connection (not available in test mode)', true);
   const o = document.createElement('div'); o.className = 'overlay';
-  o.innerHTML = '<div class="modal wide"><h3>Source files <span class="muted" style="font-size:.6em">v' + esc(VERSION) + '</span></h3><div class="pop-body"><p class="muted" id="sc-prog">Starting…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn small" id="sc-link" hidden></button><button class="btn primary" id="sc-close">Close</button></div></div>';
+  o.innerHTML = '<div class="modal wide"><h3>Source files <span class="muted" style="font-size:.6em">v' + esc(VERSION) + '</span></h3><div class="pop-body"><p class="muted" id="sc-prog">Starting…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn small" id="sc-link" hidden></button><button class="btn small" id="sc-link2" hidden></button><button class="btn primary" id="sc-close">Close</button></div></div>';
   const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
   o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); o.querySelector('#sc-close').onclick = close; document.addEventListener('keydown', onKey); document.body.appendChild(o);
   const recs = S.recipes.slice().concat((S.notes || []).filter(n => String(n.file_path || '').trim()).map(n => ({ id: n.id, name: n.title, source: n.file_path, isNote: true }))).sort((a, b) => String(a.name).localeCompare(String(b.name))), rows = [];
@@ -585,6 +589,7 @@ async function checkSources() {
       else {
         const L = await Drive.findByName(src);
         if (!L.length) { row.st = 'notfound'; try { const cl = closestNames(src, await Drive.treeFiles()); row.where = (Drive._treeErr ? 'Folder search failed: ' + Drive._treeErr + '. ' : '') + (cl.length ? 'Closest in Recipe Book Data: ' + cl.join('  |  ') : (Drive._treeInfo ? 'Nothing similar in Recipe Book Data (' + Drive._treeInfo.count + ' files seen)' : '')); } catch (e) { row.where = e.message || ''; } }
+        else if (L[0].approx) { row.st = L.length === 1 ? 'maybe' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = L.slice(0, 3).map(f => f.path + ' / ' + f.name).join('  |  '); }
         else { row.st = L.length === 1 ? 'byname' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = (await Promise.all(L.slice(0, 3).map(f => f.path ? f.path : f.parents && f.parents[0] ? Drive.folderPath(f.parents[0]) : 'My Drive'))).join('  |  ') + (L.length > 3 ? '  | …' : ''); }
       }
     } catch (e) { if (e.code === 'auth' || /allow reading/i.test(e.message || '')) fatal = e.message; row.st = 'error'; row.where = e.message || String(e); }
@@ -617,16 +622,19 @@ async function checkSources() {
   };
   const cp = o.querySelector('#sc-copy'); cp.hidden = false;
   cp.onclick = async () => { const t = rows.map(x => [x.r.name, linkName(x.src), SRC_LABEL[x.st], x.where].join('\t')).join('\n'); try { await navigator.clipboard.writeText(t); toast('Report copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
-  const fix = rows.filter(x => x.st === 'byname'), lk = o.querySelector('#sc-link');
-  if (fix.length) {
-    lk.hidden = false; lk.textContent = 'Make ' + fix.length + ' name-based link' + (fix.length > 1 ? 's' : '') + ' permanent (optional)';
-    lk.onclick = async () => {
-      if (!await confirmBox('<h3>Link ' + fix.length + ' file' + (fix.length > 1 ? 's' : '') + ' by ID?</h3><p>Each recipe’s Source file or note’s linked file changes from a name to a direct link to the file found above. The files themselves are not touched.</p>', 'Link them')) return;
-      let n = 0; lk.disabled = true;
-      for (const x of fix) { try { if (x.r.isNote) { const nn = clone(S.notes.find(q => q.id === x.r.id)); nn.file_path = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/notes/' + x.r.id, nn); } else { const d = clone(x.r); d.source = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/recipes/' + x.r.id, d); } n++; } catch (e) { toast(x.r.name + ': ' + e.message, true); } }
+  const doLink = (btn, list, text, title) => {
+    if (!list.length) return;
+    btn.hidden = false; btn.textContent = text;
+    btn.onclick = async () => {
+      if (!await confirmBox('<h3>' + title + '</h3><p>Each recipe’s Source file or note’s linked file changes to a direct link to the file shown in the Where column. The files themselves are not touched.</p>', 'Link them')) return;
+      let n = 0; btn.disabled = true;
+      for (const x of list) { try { if (x.r.isNote) { const nn = clone(S.notes.find(q => q.id === x.r.id)); nn.file_path = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/notes/' + x.r.id, nn); } else { const d = clone(x.r); d.source = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/recipes/' + x.r.id, d); } n++; } catch (e) { toast(x.r.name + ': ' + e.message, true); } }
       await load(); toast(n + ' linked'); close(); render();
     };
-  }
+  };
+  const fx = rows.filter(x => x.st === 'byname'), mb = rows.filter(x => x.st === 'maybe'), pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
+  doLink(o.querySelector('#sc-link'), fx, 'Make ' + pl(fx.length, 'name-based link') + ' permanent (optional)', 'Link ' + pl(fx.length, 'file') + ' by ID?');
+  doLink(o.querySelector('#sc-link2'), mb, 'Link ' + mb.length + ' possible match' + (mb.length > 1 ? 'es' : '') + ' by ID', 'Link ' + mb.length + ' possible match' + (mb.length > 1 ? 'es' : '') + ' by ID? Check the Where column first.');
 }
 const linkName = s => String(s || '').replace(/^drive:[^/]+\//, '');
 async function openFile(path, folder) {

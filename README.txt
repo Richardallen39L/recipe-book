@@ -1,7 +1,10 @@
-Recipe Book v3.11.1 (web, Google Drive)
+Recipe Book v3.12.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.11.1
+New in 3.12.0
+- Linked files are now also matched approximately inside Recipe Book Data / files: if no file has the same name (ignoring case, punctuation and extension), a single file whose name shares most of its words (for example an extra "v2" or "copy") is used. Open file uses it; Check source files lists it as "Possible match (please check)" with the file it found, and "Link N possible matches by ID" fixes them after you have looked at the list.
+
+In 3.11.1
 - Settings -> Drive & data -> "Show what the app sees in Recipe Book Data": lists the Recipe Book Data / files folders and every file the app can see, with a search box and a Copy list button. Use it to find out why a linked file is not found.
 - Check source files shows the app version, and for a file that is not found it lists the closest names in Recipe Book Data and any error from the folder search.
 
