@@ -236,7 +236,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.11.0';
+const VERSION = '3.11.1';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -288,15 +288,15 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
   async treeFiles(){if(this._tree&&Date.now()-this._tree.t<300000)return this._tree.files;
    const t=await tokenR(),H={headers:{Authorization:'Bearer '+t}},FOLD='application/vnd.google-apps.folder',files=[];
    const list=async q=>{let out=[],pt='';do{const r=await fetch(`${API}/files?q=${enc(q)}&fields=nextPageToken,files(id,name,parents,mimeType,webViewLink)&pageSize=1000&orderBy=modifiedTime%20desc${pt?'&pageToken='+enc(pt):''}`,H);if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. Tap Settings, Allow access to my Drive files, then try again.')}throw err('http','Drive '+r.status)}const j=await r.json();out=out.concat(j.files||[]);pt=j.nextPageToken||''}while(pt);return out};
-   const queue=[];
-   for(const rt of await list("name='Recipe Book Data' and mimeType='"+FOLD+"' and trashed=false")){for(const k of await list("'"+rt.id+"' in parents and trashed=false and mimeType='"+FOLD+"'")){if(k.name==='files')queue.push({id:k.id,path:'Recipe Book Data / files'})}}
-   let n=0;while(queue.length&&n++<300){const f=queue.shift();for(const c of await list("'"+f.id+"' in parents and trashed=false")){if(c.mimeType===FOLD)queue.push({id:c.id,path:f.path+' / '+c.name});else files.push(Object.assign({},c,{path:f.path}))}}
-   this._tree={t:Date.now(),files};return files},
+   const queue=[],dirs=[];let nr=0,nf=0;
+   for(const rt of await list("name='Recipe Book Data' and mimeType='"+FOLD+"' and trashed=false")){nr++;for(const k of await list("'"+rt.id+"' in parents and trashed=false and mimeType='"+FOLD+"'")){if(String(k.name).toLowerCase()==='files'){queue.push({id:k.id,path:'Recipe Book Data / '+k.name});nf++}}}
+   let n=0;while(queue.length&&n++<300){const f=queue.shift();for(const c of await list("'"+f.id+"' in parents and trashed=false")){if(c.mimeType===FOLD){queue.push({id:c.id,path:f.path+' / '+c.name});dirs.push(f.path+' / '+c.name)}else files.push(Object.assign({},c,{path:f.path}))}}
+   this._tree={t:Date.now(),files};this._treeInfo={roots:nr,filesFolders:nf,folders:dirs,count:files.length};return files},
   async findIn(rel){const files=await this.treeFiles(),parts=String(rel).replace(/\\/g,'/').split('/'),base=parts.pop(),nz=x=>String(x).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^\p{L}\p{N}]/gu,''),ext=x=>((/\.([^.]+)$/.exec(x)||[])[1]||'').toLowerCase();
    if(!nz(base))return [];let L=files.filter(f=>nz(f.name)===nz(base));
    if(L.length>1){const d=parts.map(x=>x.toLowerCase()).filter(Boolean),sc=f=>(ext(f.name)===ext(base)?2:0)+(d.length&&d.every(x=>String(f.path).toLowerCase().includes(x))?1:0);L=L.slice().sort((a,b)=>sc(b)-sc(a))}
    return L},
-  async findByName(rel){const T=await this.findIn(rel).catch(e=>{if(e.code==='auth')throw e;return[]});if(T.length)return T;return this.findByNameAny(rel)},
+  async findByName(rel){this._treeErr='';const T=await this.findIn(rel).catch(e=>{if(e.code==='auth')throw e;this._treeErr=e.message||String(e);return[]});if(T.length)return T;return this.findByNameAny(rel)},
   async fileInfo(id){const t=await tokenR(),r=await fetch(`${API}/files/${id}?fields=id,name,parents,trashed`,{headers:{Authorization:'Bearer '+t}});if(r.status===404)return null;if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. Tap Settings, Allow access to my Drive files, then try again.')}throw err('http','Drive '+r.status)}return r.json()},
   async findByNameAny(rel){const t=await tokenR(),base=String(rel).replace(/\\/g,'/').split('/').pop(),q=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'"),NF=" and trashed=false and mimeType!='application/vnd.google-apps.folder'";
    const rq=async s=>{const r=await fetch(`${API}/files?q=${enc(s)}&fields=files(id,name,parents,webViewLink)&pageSize=25&orderBy=modifiedTime%20desc`,{headers:{Authorization:'Bearer '+t}});if(!r.ok){if(r.status===401||r.status===403){tokR=null;throw err('auth','Google did not allow reading your Drive files. The drive.readonly permission has to be added to the Google Cloud app (see README), then tap Settings, Allow access to my Drive files.')}throw err('http','Drive '+r.status)}return (await r.json()).files};
@@ -542,10 +542,33 @@ async function storeSourceFile(file) {   // keep a copy in Drive (Recipe Book Da
 }
 const SRC_ORDER = ['error', 'notfound', 'missing', 'trashed', 'several', 'none', 'byname', 'ok'];
 const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Trash', several: 'Found in several places', byname: 'Found by name (fine)', ok: 'Linked by ID', none: 'No source file' };
+const closestNames = (rel, files) => {
+  const tok = x => String(x).toLowerCase().replace(/\.[^.]+$/, '').split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 1), want = tok(String(rel).replace(/\\/g, '/').split('/').pop());
+  if (!want.length) return [];
+  return files.map(f => ({ f, n: tok(f.name).filter(w => want.includes(w)).length })).filter(x => x.n >= Math.min(2, want.length)).sort((a, b) => b.n - a.n).slice(0, 3).map(x => x.f.path + ' / ' + x.f.name);
+};
+async function showDriveScan() {
+  if (!Drive.treeFiles) return toast('This needs the Google Drive connection (not available in test mode)', true);
+  const o = document.createElement('div'); o.className = 'overlay';
+  o.innerHTML = '<div class="modal wide"><h3>What the app can see in Recipe Book Data</h3><div class="pop-body" style="max-height:62vh;overflow:auto"><p class="muted">Reading your Drive…</p></div><div class="row"><button class="btn small" id="ds-copy" hidden>Copy list</button><button class="btn primary" id="ds-close">Close</button></div></div>';
+  const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
+  o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); o.querySelector('#ds-close').onclick = close; document.addEventListener('keydown', onKey); document.body.appendChild(o);
+  try {
+    Drive._tree = null; const files = await Drive.treeFiles(), inf = Drive._treeInfo || {};
+    if (!o.isConnected) return;
+    const rows = files.slice().sort((a, b) => (a.path + a.name).localeCompare(b.path + b.name));
+    o.querySelector('.pop-body').innerHTML = '<p>Recipe Book v' + esc(VERSION) + '. Found <b>' + (inf.roots || 0) + '</b> folder(s) called “Recipe Book Data”, <b>' + (inf.filesFolders || 0) + '</b> “files” folder(s) inside, <b>' + (inf.folders || []).length + '</b> sub-folder(s) and <b>' + files.length + '</b> file(s).</p>' +
+      ((inf.roots || 0) === 0 ? '<p>No folder called “Recipe Book Data” is visible to this Google account. If the files are in your Drive, check you are signed in to the same Google account as the app’s data (Settings → Drive &amp; data).</p>' : (inf.filesFolders || 0) === 0 ? '<p>“Recipe Book Data” has no folder called “files” in it.</p>' : '') +
+      '<input id="ds-q" placeholder="Type part of a file name to test" style="width:100%;margin:6px 0"><div style="max-height:44vh;overflow:auto"><table><thead><tr><th>Folder</th><th>File</th></tr></thead><tbody id="ds-body"></tbody></table></div>';
+    const draw = q => { const w = String(q || '').toLowerCase().trim(); o.querySelector('#ds-body').innerHTML = rows.filter(x => !w || (x.path + ' ' + x.name).toLowerCase().includes(w)).slice(0, 400).map(x => '<tr><td class="muted">' + esc(x.path) + '</td><td>' + esc(x.name) + '</td></tr>').join(''); };
+    draw(''); o.querySelector('#ds-q').oninput = e => draw(e.target.value);
+    const cp = o.querySelector('#ds-copy'); cp.hidden = false; cp.onclick = async () => { try { await navigator.clipboard.writeText(rows.map(x => x.path + '\t' + x.name).join('\n')); toast('List copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
+  } catch (e) { if (o.isConnected) o.querySelector('.pop-body').innerHTML = '<p>' + esc(e.message || String(e)) + '</p>'; }
+}
 async function checkSources() {
   if (!Drive.fileInfo) return toast('Checking source files needs the Google Drive connection (not available in test mode)', true);
   const o = document.createElement('div'); o.className = 'overlay';
-  o.innerHTML = '<div class="modal wide"><h3>Source files</h3><div class="pop-body"><p class="muted" id="sc-prog">Starting…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn small" id="sc-link" hidden></button><button class="btn primary" id="sc-close">Close</button></div></div>';
+  o.innerHTML = '<div class="modal wide"><h3>Source files <span class="muted" style="font-size:.6em">v' + esc(VERSION) + '</span></h3><div class="pop-body"><p class="muted" id="sc-prog">Starting…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn small" id="sc-link" hidden></button><button class="btn primary" id="sc-close">Close</button></div></div>';
   const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
   o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); o.querySelector('#sc-close').onclick = close; document.addEventListener('keydown', onKey); document.body.appendChild(o);
   const recs = S.recipes.slice().concat((S.notes || []).filter(n => String(n.file_path || '').trim()).map(n => ({ id: n.id, name: n.title, source: n.file_path, isNote: true }))).sort((a, b) => String(a.name).localeCompare(String(b.name))), rows = [];
@@ -561,7 +584,7 @@ async function checkSources() {
       } else if (/^Imported recipes\//.test(src)) row.st = 'none';
       else {
         const L = await Drive.findByName(src);
-        if (!L.length) row.st = 'notfound';
+        if (!L.length) { row.st = 'notfound'; try { const cl = closestNames(src, await Drive.treeFiles()); row.where = (Drive._treeErr ? 'Folder search failed: ' + Drive._treeErr + '. ' : '') + (cl.length ? 'Closest in Recipe Book Data: ' + cl.join('  |  ') : (Drive._treeInfo ? 'Nothing similar in Recipe Book Data (' + Drive._treeInfo.count + ' files seen)' : '')); } catch (e) { row.where = e.message || ''; } }
         else { row.st = L.length === 1 ? 'byname' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = (await Promise.all(L.slice(0, 3).map(f => f.path ? f.path : f.parents && f.parents[0] ? Drive.folderPath(f.parents[0]) : 'My Drive'))).join('  |  ') + (L.length > 3 ? '  | …' : ''); }
       }
     } catch (e) { if (e.code === 'auth' || /allow reading/i.test(e.message || '')) fatal = e.message; row.st = 'error'; row.where = e.message || String(e); }
@@ -2562,7 +2585,7 @@ function renderSettings() {
     <p class="help">Import replaces everything with the contents of an export file (from this version or from Recipe Book 2.x on Windows). Export first if you want a copy of what is here now.</p></div>
   <div class="card"><h2>Open file links</h2>
     <p class="help">“Open file” looks for the file by name in your Google Drive. The first time, Google asks you to allow Recipe Book to read your Drive files. Files added through Import are kept in <code>Recipe Book Data/files</code> and open directly.</p>
-    <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button><button class="btn" id="d-check">Check source files</button></div></div>
+    <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button><button class="btn" id="d-check">Check source files</button><button class="btn" id="d-scan">Show what the app sees in Recipe Book Data</button></div></div>
   <div class="card"><h2>Trash</h2>${S.trash.length ? '<table>' + S.trash.map(t => '<tr><td>' + esc(t.name) + '</td><td class="muted">' + esc(t.category) + '</td><td class="muted">' + esc(t.updated_at) + '</td><td><button class="btn small" data-un="' + t.id + '">Restore</button> <button class="btn small danger" data-pg="' + t.id + '">Delete forever</button></td></tr>').join('') + '</table>' : '<p class="muted">Empty.</p>'}</div>
   <p class="muted">Recipe Book ${esc(info.version)}</p></div>`;
   const stShow = n => { V.stab = n; $$('.stab').forEach(d => { d.hidden = d.dataset.st !== n; }); $$('[data-stb]').forEach(b => b.classList.toggle('on', b.dataset.stb === n)); $('#st-save').hidden = n === 'data' || n === 'org'; };
@@ -2612,6 +2635,7 @@ function renderSettings() {
   $('#d-status').onclick = showDiag;
   $('#d-signin').onclick = async () => { try { await Drive.signIn(); await syncNow(); render(); } catch (e) { toast('Sign-in did not complete: ' + (e.message || e), true); } };
   $('#d-check').onclick = checkSources;
+  $('#d-scan').onclick = showDriveScan;
   $('#d-allow').onclick = async () => { try { if (!Drive.allowRead) throw new Error('Not available in test mode'); await Drive.allowRead(); toast('Allowed'); } catch (e) { toast(e.message || String(e), true); } };
   $('#d-export').onclick = () => {
     const blob = new Blob([JSON.stringify(exportData(), null, 1)], { type: 'application/json' }), a = document.createElement('a');
