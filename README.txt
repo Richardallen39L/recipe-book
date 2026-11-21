@@ -1,7 +1,10 @@
-Recipe Book v3.17.0 (web, Google Drive)
+Recipe Book v3.18.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.17.0
+New in 3.18.0
+- Moving ingredients in the editor: clicking a line's up or down arrow now selects that line (it is highlighted) and shows a move bar that stays fixed at the top of the ingredient list: Moving <name> (line n of m), with Up, Down and Done buttons. Click Up or Down on the bar as many times as you like without moving the pointer; the line carries on moving and stays in view. Alt+Up / Alt+Down on the keyboard do the same. Done (or deleting the line) clears the selection.
+
+In 3.17.0
 - Unrecognised ingredients are flagged. An ingredient whose name is not found in Settings -> Ingredient norms (no salt, fat or each-weight row matches, and you have not typed your own salt or fat for the line) is shown with its name in quotes and a small + button in the recipe, and with a dashed name box, a + button and a note under the table in the editor and the import review. Click the + to add it to the Ingredient norms (words in the name, salt %, fat %, optional weight of one item); the flag then disappears everywhere. Until then its salt and fat count as 0. The flag does not print.
 - Meat words: Settings -> Ingredient norms has a new Meat words box. On the Sausage & bacon tab an imported ingredient is typed as meat when its name contains a built-in meat word or one of the words you add there. The built-in list now also has sausage, kielbasa, chorizo, salami, pancetta, lardons and prosciutto.
 

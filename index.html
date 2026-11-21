@@ -88,6 +88,9 @@ tr.key td{font-weight:700;background:rgba(255,196,60,.22)}
 button.unk{border:1px dashed #d98a00;background:#fff6dd;color:#8a5a00;border-radius:6px;font:inherit;font-weight:700;line-height:1;padding:1px 6px;margin-left:5px;cursor:pointer}
 .unkname::before{content:'“'} .unkname::after{content:'”'} .unkname{color:#8a5a00}
 input.unkin{border-color:#d98a00;border-style:dashed}
+div.mvbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;margin:6px 0;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.14)}
+div.mvbar span{flex:1;min-width:160px}
+tr.mvsel td{background:var(--accent-soft)}
 tr.sub-out td{color:var(--muted)} tr.sub-out td:first-child{text-decoration:line-through} tr.sub-in td{background:var(--accent-soft)} .subtag{font-size:calc(12px*var(--ts,1));color:var(--accent);font-weight:600}
 label.subtick{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;margin-right:12px;border:1px solid var(--accent);border-radius:7px;background:var(--panel);cursor:pointer}
 .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:calc(13px*var(--ts,1));font-weight:600}
@@ -249,7 +252,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.17.0';
+const VERSION = '3.18.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1753,13 +1756,41 @@ function drawRows() {
     const fl = e.target.closest('.flagi'); if (fl) { delete d.ingredients[+fl.closest('tr').dataset.n]._flag; drawRows(); return; }
     const b = e.target.closest('button[data-act]'); if (!b) return;
     const n = +b.closest('tr').dataset.n, a = b.dataset.act; dirty = true;
+    if (a === 'up' || a === 'down') V.mv = d.ingredients[n];   // the line stays selected while it moves
     if (a === 'del') d.ingredients.splice(n, 1);
     if (a === 'up' && n > 0) [d.ingredients[n - 1], d.ingredients[n]] = [d.ingredients[n], d.ingredients[n - 1]];
     if (a === 'down' && n < d.ingredients.length - 1) [d.ingredients[n + 1], d.ingredients[n]] = [d.ingredients[n], d.ingredients[n + 1]];
     drawRows(); refreshRef();
+    if (a === 'up' || a === 'down') { const sb = $('#mv-bar [data-mv="' + a + '"]'); if (sb && !sb.disabled) sb.focus({ preventScroll: true }); const tr = $('#e-rows tr.mvsel'); if (tr && tr.scrollIntoView) tr.scrollIntoView({ block: 'nearest' }); }
   };
-  unkNote();
+  unkNote(); mvBar();
 }
+/* A move bar that stays put (sticky) while the selected line moves, so Up / Down can be clicked repeatedly without chasing the line. */
+function mvBar() {
+  const d = V.draft, tb = $('#e-rows'); if (!d || !tb) return;
+  let bar = $('#mv-bar'); const ix = V.mv ? d.ingredients.indexOf(V.mv) : -1;
+  if (ix < 0) { V.mv = null; if (bar) bar.remove(); return; }
+  if (!bar) {
+    bar = document.createElement('div'); bar.id = 'mv-bar'; bar.className = 'mvbar';
+    bar.innerHTML = '<span id="mv-txt"></span><button type="button" class="btn small" data-mv="up">▲ Up</button><button type="button" class="btn small" data-mv="down">▼ Down</button><button type="button" class="btn small" data-mv="done">Done</button>';
+    const wrap = tb.closest('table').parentNode; wrap.parentNode.insertBefore(bar, wrap);
+    bar.onclick = e => {
+      const b = e.target.closest('[data-mv]'); if (!b || b.disabled) return;
+      const dd = V.draft, k = dd.ingredients.indexOf(V.mv); if (k < 0) return;
+      if (b.dataset.mv === 'done') { V.mv = null; drawRows(); return; }
+      const j = b.dataset.mv === 'up' ? k - 1 : k + 1; if (j < 0 || j >= dd.ingredients.length) return;
+      [dd.ingredients[k], dd.ingredients[j]] = [dd.ingredients[j], dd.ingredients[k]]; dirty = true; drawRows(); refreshRef();
+      const tr = $('#e-rows tr.mvsel'); if (tr && tr.scrollIntoView) tr.scrollIntoView({ block: 'nearest' });
+    };
+  }
+  $('#mv-txt', bar).innerHTML = 'Moving <b>' + esc(V.mv.name || 'this line') + '</b> (line ' + (ix + 1) + ' of ' + d.ingredients.length + ')';
+  $('[data-mv=up]', bar).disabled = ix === 0; $('[data-mv=down]', bar).disabled = ix === d.ingredients.length - 1;
+  Array.from(tb.rows).forEach((tr, k) => tr.classList.toggle('mvsel', k === ix));
+}
+document.addEventListener('keydown', e => {   // Alt+Up / Alt+Down move the selected line
+  if (!V.mv || !e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+  const b = $('#mv-bar [data-mv="' + (e.key === 'ArrowUp' ? 'up' : 'down') + '"]'); if (b && !b.disabled) { e.preventDefault(); b.click(); }
+});
 function unkNote() {
   const tb = $('#e-rows'); if (!tb || !V.draft) return;
   const names = V.draft.ingredients.filter(unknownIng).map(i => '“' + i.name + '”');
