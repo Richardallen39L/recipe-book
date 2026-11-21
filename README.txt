@@ -1,7 +1,15 @@
-Recipe Book v3.15.0 (web, Google Drive)
+Recipe Book v3.17.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.15.0
+New in 3.17.0
+- Unrecognised ingredients are flagged. An ingredient whose name is not found in Settings -> Ingredient norms (no salt, fat or each-weight row matches, and you have not typed your own salt or fat for the line) is shown with its name in quotes and a small + button in the recipe, and with a dashed name box, a + button and a note under the table in the editor and the import review. Click the + to add it to the Ingredient norms (words in the name, salt %, fat %, optional weight of one item); the flag then disappears everywhere. Until then its salt and fat count as 0. The flag does not print.
+- Meat words: Settings -> Ingredient norms has a new Meat words box. On the Sausage & bacon tab an imported ingredient is typed as meat when its name contains a built-in meat word or one of the words you add there. The built-in list now also has sausage, kielbasa, chorizo, salami, pancetta, lardons and prosciutto.
+
+In 3.16.0
+- Back and forward buttons (arrows at the top left of the header): step back and forward through the recipes and notes you have looked at, across tabs too. Also Alt+Left / Alt+Right on the keyboard and the back / forward buttons on a mouse. From Settings, Search and so on, Back returns to the last recipe. If you have unsaved edits you are asked before leaving.
+- Import fixes (found with the Polish Rejbak recipe, which lost all its meat lines): an ingredient line with no amount, such as "Salt and plenty of freshly ground black pepper", no longer ends the ingredient list while more ingredients follow; sub-headings such as "Potato mixture" and "To grease and serve" are read as groups; amounts like "750g-1kg" are read as a range (the midpoint is used, as for other ranges); PDF page headers such as "Polish Rejbak - 1" no longer become the recipe name; and long one-line method paragraphs are split into separate steps.
+
+In 3.15.0
 - Pork substitute: on a Sausage & bacon recipe with a pork shoulder or belly line, Make this recipe has a "Pork substitute (loin + back fat)" tickbox. Ticked, the shoulder / belly lines show 0 and the pork loin line is added (or increased, if the recipe already has a pork loin / lean pork line) and the back fat line is added or increased, keeping the same total weight and the same fat (loin and back fat fat% come from Settings -> Ingredient norms). The loin line becomes the "By ingredient" reference, so type the weight of loin you have and everything else scales to it. Salt, fat and % of meat all follow the swapped amounts. Ticking or un-ticking keeps the batch at the same multiple of the recipe. The saved recipe is never changed unless you press Use as the recipe (it then replaces the shoulder / belly lines with the loin and back fat shown).
 - This replaces the "Using loin and back fat instead" card and the "Total loin" scaling choice from 3.14.0.
 
