@@ -1,7 +1,17 @@
-Recipe Book v3.12.0 (web, Google Drive)
+Recipe Book v3.14.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.12.0
+New in 3.14.0
+- Text size: Settings -> Organisation -> Text size (Normal, Large, Larger, Largest). It scales the text everywhere in the app and is kept per device, so the tablet and the PC can differ. The default is now Large (a little bigger than before). Printing always uses the normal size.
+- "Using loin and back fat instead": the card now always ends with a Total loin to buy line (with the total back fat to add), and "Total loin (if using loin and back fat instead)" is a new choice in Make this recipe -> By ingredient. Type the weight of loin you have and the whole recipe scales to use exactly that much loin.
+
+In 3.13.0
+- Filter dropdown: under the filter box the list now holds All, Favourites, the salt option and every category of the current tab (with the number of recipes in each). On the Notes tab it holds All and the note kinds.
+- The filter text and dropdown are cleared when you swap tabs.
+- Catalogue: the app keeps two spreadsheet-style lists in Recipe Book Data. catalogue.csv has one row per recipe and note (tab, category, favourite, source file ID, file name, link) and is updated a few seconds after each save. originals.csv lists every file in the files folder with its folder and which recipes use it (files nothing uses show a count of 0); it is updated by Check source files and by Settings -> Drive & data -> Update catalogue now.
+- Check source files is now quiet and quick: files linked by ID are confirmed from one listing of the files folder instead of one Drive call each, and the report shows only what needs a decision. One button links every found-by-name file by ID; recipes found in several places or with a possible match get a drop-down to choose the file and a Link this one button. Recipes with no source file are tucked under their own heading, and the full list is under Show all.
+
+In 3.12.0
 - Linked files are now also matched approximately inside Recipe Book Data / files: if no file has the same name (ignoring case, punctuation and extension), a single file whose name shares most of its words (for example an extra "v2" or "copy") is used. Open file uses it; Check source files lists it as "Possible match (please check)" with the file it found, and "Link N possible matches by ID" fixes them after you have looked at the list.
 
 In 3.11.1

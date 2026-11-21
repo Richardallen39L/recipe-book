@@ -18,14 +18,14 @@
 }
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
-body{font:15px/1.45 "Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);display:flex;flex-direction:column}
+body{font:calc(15px*var(--ts,1))/1.45 "Segoe UI",system-ui,sans-serif;color:var(--ink);background:var(--bg);display:flex;flex-direction:column}
 button,input,select,textarea{font:inherit;color:inherit}
 button{cursor:pointer}
 [hidden]{display:none!important}
 header.top{display:flex;align-items:center;gap:8px;padding:8px 14px;background:linear-gradient(90deg,var(--hdr1),var(--hdr2));border-bottom:1px solid var(--line);flex:none}
-header.top h1{font-size:19px;margin:0 14px 0 0;color:#fff;letter-spacing:.2px;text-shadow:0 1px 2px rgba(0,0,0,.25)}
+header.top h1{font-size:calc(19px*var(--ts,1));margin:0 14px 0 0;color:#fff;letter-spacing:.2px;text-shadow:0 1px 2px rgba(0,0,0,.25)}
 header.top .btn{background:rgba(255,255,255,.92);color:#2a211c;border-color:transparent}
-header.top h1 .hver{font-size:12px;font-weight:400;opacity:.85;margin-left:4px;text-shadow:none}
+header.top h1 .hver{font-size:calc(12px*var(--ts,1));font-weight:400;opacity:.85;margin-left:4px;text-shadow:none}
 header.top .btn:hover{background:#fff}
 header.top .btn.primary{background:#ffe9a8;color:#3d2a00;border-color:#ffd978}
 .btn{border:1px solid var(--line);background:var(--panel);padding:6px 12px;border-radius:7px;line-height:1.2;display:inline-block;color:var(--ink);text-decoration:none}
@@ -33,7 +33,7 @@ header.top .btn.primary{background:#ffe9a8;color:#3d2a00;border-color:#ffd978}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
 .btn.primary:hover{filter:brightness(1.08)}
 .btn.danger{color:var(--bad);border-color:var(--bad)}
-.btn.small{padding:3px 8px;font-size:13px}
+.btn.small{padding:3px 8px;font-size:calc(13px*var(--ts,1))}
 .btn.on{background:var(--accent-soft);border-color:var(--accent);color:var(--accent)}
 .spacer{flex:1}
 #app{flex:1;display:flex;min-height:0}
@@ -42,7 +42,7 @@ aside{width:300px;flex:none;border-right:1px solid var(--line);background:var(--
 aside .tools{padding:10px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:6px}
 aside input[type=search],aside select{width:100%;padding:6px 9px;border:1px solid var(--line);border-radius:7px;background:var(--input)}
 #list{overflow:auto;flex:1;padding:4px 0 20px}
-#list h3{margin:12px 0 4px;padding:3px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--cat);font-weight:700;background:color-mix(in srgb,var(--cat) var(--tint),transparent);border-left:5px solid var(--cat)}
+#list h3{margin:12px 0 4px;padding:3px 14px;font-size:calc(11px*var(--ts,1));text-transform:uppercase;letter-spacing:.8px;color:var(--cat);font-weight:700;background:color-mix(in srgb,var(--cat) var(--tint),transparent);border-left:5px solid var(--cat)}
 #list a{display:flex;align-items:center;gap:8px;padding:5px 14px 5px 11px;color:var(--ink);text-decoration:none;cursor:pointer;border-left:5px solid color-mix(in srgb,var(--cat) 35%,transparent)}
 #list a:hover{background:var(--grey-bg)}
 #list a.sel{background:color-mix(in srgb,var(--blue) 16%,var(--panel));border-left-color:var(--blue);font-weight:600}
@@ -51,22 +51,22 @@ aside input[type=search],aside select{width:100%;padding:6px 9px;border:1px soli
 #list .dot.ok{background:var(--ok)} #list .dot.low,#list .dot.high{background:var(--warn)} #list .dot.unknown{background:#8ab4f8}
 #list .nm{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #list .star{color:#d9a400}
-#count{font-size:12px;color:var(--muted);padding:4px 14px 0}
+#count{font-size:calc(12px*var(--ts,1));color:var(--muted);padding:4px 14px 0}
 main{flex:1;overflow:auto;padding:20px 28px 60px;min-width:0}
 .card{background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--cat);border-radius:10px;padding:14px 18px 16px;margin-bottom:16px;box-shadow:var(--shadow)}
-.card h2{margin:0 0 10px;font-size:14px;color:var(--cat);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
+.card h2{margin:0 0 10px;font-size:calc(14px*var(--ts,1));color:var(--cat);text-transform:uppercase;letter-spacing:.6px;font-weight:700}
 .card.make{background:color-mix(in srgb,var(--cat) 7%,var(--panel))}
 .rhead{display:flex;flex-wrap:wrap;align-items:flex-start;gap:10px;margin-bottom:12px}
-.rhead h1{margin:0;font-size:28px;flex:1;min-width:200px;color:var(--title)}
+.rhead h1{margin:0;font-size:calc(28px*var(--ts,1));flex:1;min-width:200px;color:var(--title)}
 .rhead .meta{color:var(--muted);width:100%;margin-top:-6px}
 .actions{display:flex;gap:6px;flex-wrap:wrap}
 .rtop{display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:100%}
-.saltline{font-size:13.5px;text-align:right;max-width:560px;line-height:1.35}
-.saltline .tot{font-size:17px;color:var(--title)}
+.saltline{font-size:calc(13.5px*var(--ts,1));text-align:right;max-width:560px;line-height:1.35}
+.saltline .tot{font-size:calc(17px*var(--ts,1));color:var(--title)}
 .saltline .tot.good{color:var(--ok)}
 .saltline .tot.bad{color:var(--bad)}
 .saltline .tot.warn{color:var(--warn)}
-.saltline .sub{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.saltline .sub{display:block;font-size:calc(12px*var(--ts,1));color:var(--muted);margin-top:2px}
 .saltline .rng{color:var(--ink)}
 .saltline .muted{color:var(--muted)}
 .saltline.clk{cursor:pointer}.saltline.clk:hover .tot{text-decoration:underline}
@@ -79,23 +79,23 @@ main{flex:1;overflow:auto;padding:20px 28px 60px;min-width:0}
 .scale select{padding:5px 8px;border:1px solid var(--line);border-radius:7px;background:var(--input);max-width:260px}
 .scale .factor{color:var(--muted)}
 table{border-collapse:collapse;width:100%}
-th{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);text-align:left;font-weight:600;padding:4px 8px;border-bottom:1px solid var(--line)}
+th{font-size:calc(11px*var(--ts,1));text-transform:uppercase;letter-spacing:.6px;color:var(--muted);text-align:left;font-weight:600;padding:4px 8px;border-bottom:1px solid var(--line)}
 td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:top}
 td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
-tr.grp td{background:color-mix(in srgb,var(--cat) var(--tint),transparent);font-weight:700;font-size:13px;color:var(--cat);padding:3px 8px}
-td.note{color:var(--muted);font-size:13px}
+tr.grp td{background:color-mix(in srgb,var(--cat) var(--tint),transparent);font-weight:700;font-size:calc(13px*var(--ts,1));color:var(--cat);padding:3px 8px}
+td.note{color:var(--muted);font-size:calc(13px*var(--ts,1))}
 tr.key td{font-weight:700;background:rgba(255,196,60,.22)}
-.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:13px;font-weight:600}
+.badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:calc(13px*var(--ts,1));font-weight:600}
 .badge.ok{background:var(--ok-bg);color:var(--ok)} .badge.low,.badge.high{background:var(--warn-bg);color:var(--warn)}
 .badge.unknown,.badge.nodata{background:var(--grey-bg);color:var(--muted)}
 .badge.hi{background:#fbe3e0;color:#a52a20} .badge.md{background:#fff1d8;color:#9a5b00} .badge.lo{background:var(--ok-bg);color:var(--ok)}
 th.sortable{cursor:pointer;user-select:none;white-space:nowrap} th.sortable:hover{color:var(--accent)}
 .check{display:flex;flex-wrap:wrap;align-items:center;gap:14px}
-.big{font-size:32px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--cat)}
+.big{font-size:calc(32px*var(--ts,1));font-weight:700;font-variant-numeric:tabular-nums;color:var(--cat)}
 .track{position:relative;height:12px;background:var(--grey-bg);border-radius:6px;margin:12px 0 4px;max-width:520px}
 .track .band{position:absolute;top:0;bottom:0;background:var(--ok-bg);border:1px solid var(--ok);border-radius:6px;opacity:.9}
 .track .mark{position:absolute;top:-4px;width:4px;height:20px;border-radius:2px;background:var(--ink)}
-.ticks{display:flex;justify-content:space-between;max-width:520px;font-size:11px;color:var(--muted)}
+.ticks{display:flex;justify-content:space-between;max-width:520px;font-size:calc(11px*var(--ts,1));color:var(--muted)}
 .muted{color:var(--muted)}
 .rich p{margin:0 0 .8em} .rich ol,.rich ul{margin:0 0 .8em;padding-left:1.4em} .rich li{margin-bottom:.25em}
 .rich pre{background:var(--grey-bg);padding:10px 12px;border-radius:7px;overflow:auto;font:12.5px/1.3 Consolas,monospace}
@@ -103,15 +103,15 @@ th.sortable{cursor:pointer;user-select:none;white-space:nowrap} th.sortable:hove
 .rich ol li::marker{color:var(--cat);font-weight:700}
 .rich ul li::marker{color:var(--cat)}
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:14px}
-label.f{display:flex;flex-direction:column;gap:3px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
-label.f input,label.f select,label.f textarea,td input,td select,th input,textarea{padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--input);font-weight:400;text-transform:none;letter-spacing:0;font-size:14px;color:var(--ink);width:100%}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:calc(12px*var(--ts,1));color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+label.f input,label.f select,label.f textarea,td input,td select,th input,textarea{padding:6px 8px;border:1px solid var(--line);border-radius:7px;background:var(--input);font-weight:400;text-transform:none;letter-spacing:0;font-size:calc(14px*var(--ts,1));color:var(--ink);width:100%}
 textarea{resize:vertical;min-height:90px}
 table.edit td,table.edit th{padding:3px 4px;border:none}
 table.edit input,table.edit select{padding:4px 6px}
 table.edit td.mv{white-space:nowrap;width:1%}
-.mvb{border:none;background:none;color:var(--muted);padding:2px 4px;font-size:14px}
+.mvb{border:none;background:none;color:var(--muted);padding:2px 4px;font-size:calc(14px*var(--ts,1))}
 .mvb:hover{color:var(--accent)}
-.help{font-size:13px;color:var(--muted);margin:4px 0 10px}
+.help{font-size:calc(13px*var(--ts,1));color:var(--muted);margin:4px 0 10px}
 .toast{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:#222;color:#fff;padding:9px 16px;border-radius:8px;z-index:50;box-shadow:0 4px 14px rgba(0,0,0,.3);max-width:80vw}
 .toast.err{background:var(--bad);color:#fff}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;z-index:40}
@@ -120,12 +120,12 @@ table.edit td.mv{white-space:nowrap;width:1%}
 .modal .row{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
 .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px}
 .row-inline{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.pill{font-size:11px;padding:0 7px;border-radius:99px;background:var(--grey-bg);color:var(--muted);font-weight:400}
+.pill{font-size:calc(11px*var(--ts,1));padding:0 7px;border-radius:99px;background:var(--grey-bg);color:var(--muted);font-weight:400}
 .printonly{display:none}
 header.top{flex-wrap:wrap;row-gap:6px;gap:6px}
 header.top h1,header.top .btn{white-space:nowrap}
-header.top h1{font-size:18px}
-header.top .btn{padding:6px 10px;font-size:13px}
+header.top h1{font-size:calc(18px*var(--ts,1))}
+header.top .btn{padding:6px 10px;font-size:calc(13px*var(--ts,1))}
 #tabs{display:flex;gap:4px;margin-left:6px}
 #tabs .btn.tab{border-radius:7px 7px 0 0;background:rgba(255,255,255,.18);color:#fff;border-color:transparent;padding:7px 10px}
 #tabs .btn.tab:hover{background:rgba(255,255,255,.32)}
@@ -134,21 +134,21 @@ header.top .btn{padding:6px 10px;font-size:13px}
 .nbody{white-space:pre-wrap;word-break:break-word}
 .sfgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 14px;align-items:end;margin-top:10px}
 .sfrow{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center}
-.sfrow label.chk{display:inline-flex;gap:5px;align-items:center;font-size:13px;cursor:pointer}
-.sfrow .lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
+.sfrow label.chk{display:inline-flex;gap:5px;align-items:center;font-size:calc(13px*var(--ts,1));cursor:pointer}
+.sfrow .lbl{font-size:calc(12px*var(--ts,1));color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700}
 .sr{display:block;padding:9px 12px;border:1px solid var(--line);border-left:5px solid var(--cat,#8aa);border-radius:8px;background:#fff;margin:6px 0;cursor:pointer;color:inherit;text-decoration:none}
 .sr:hover{background:#f3f7fd}
-.sr .sr-m{margin-top:3px;font-size:12.5px;color:var(--muted)}
-.chip{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600;margin-right:6px}
+.sr .sr-m{margin-top:3px;font-size:calc(12.5px*var(--ts,1));color:var(--muted)}
+.chip{display:inline-block;padding:1px 8px;border-radius:10px;font-size:calc(12px*var(--ts,1));font-weight:600;margin-right:6px}
 .chip.g{background:#e3f4e6;color:#1d6b2c}.chip.a{background:#fff1d8;color:#9a5b00}.chip.r{background:#fbe3e0;color:#a52a20}.chip.n{background:#eee;color:#666}
 mark{background:#fff0a8;padding:0 1px;border-radius:2px}
 .backbar{margin:0 0 10px}
 .nbody a{color:var(--accent)}
 .filebar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-h3.stephead{margin:14px 0 6px;font-size:14px;color:var(--cat)}
+h3.stephead{margin:14px 0 6px;font-size:calc(14px*var(--ts,1));color:var(--cat)}
 .logcard{border-left:5px solid var(--cat)}
 .logcard dl{margin:8px 0 0;display:grid;grid-template-columns:130px 1fr;gap:4px 12px}
-.logcard dt{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding-top:2px}
+.logcard dt{color:var(--muted);font-size:calc(12px*var(--ts,1));text-transform:uppercase;letter-spacing:.5px;padding-top:2px}
 .logcard dd{margin:0;white-space:pre-wrap}
 .empty{color:var(--muted);padding:40px 0;text-align:center}
 main a{color:var(--accent)}
@@ -156,28 +156,29 @@ code{font:13px Consolas,monospace;background:var(--grey-bg);padding:1px 5px;bord
 .dropzone{border:2px dashed var(--line);border-radius:10px;padding:16px;text-align:center;background:#f7faff}
 .dropzone.over{border-color:var(--accent);background:#e8f1fd}
 table.edit tr.flag td{background:#fff3cc}
-.flagi{cursor:pointer;color:#b87300;font-size:14px;margin-right:2px}
+.flagi{cursor:pointer;color:#b87300;font-size:calc(14px*var(--ts,1));margin-right:2px}
 #origpane{position:fixed;top:56px;right:0;bottom:0;width:min(46vw,580px);background:var(--panel);border-left:1px solid var(--line);box-shadow:-6px 0 18px rgba(0,0,0,.2);z-index:30;display:flex;flex-direction:column}
 #origpane .ophead{display:flex;gap:10px;align-items:center;padding:8px 12px;border-bottom:1px solid var(--line)}
 #origpane .ophead .btn{margin-left:auto}
 #origpane pre{margin:0;padding:12px;overflow:auto;white-space:pre-wrap;word-break:break-word;font:13px/1.45 Consolas,monospace;flex:1}
 @media print{
+  :root{--ts:1!important}
   header.top,aside,.actions,.noprint,.toast{display:none!important}
   body{background:#fff;color:#000;display:block;height:auto} #app{display:block} main{overflow:visible;padding:0}
   .card{border:none;box-shadow:none;padding:0;margin-bottom:10px;background:#fff}
   .printonly{display:block} th,td{border-color:#bbb} tr.grp td{background:#eee;color:#000}
 }
-header.top{flex-wrap:wrap;gap:6px}header.top h1{white-space:nowrap;font-size:17px;margin-right:4px}header.top .btn{font-size:13px;padding:6px 8px}header.top{padding:8px 10px}header.top .btn{white-space:nowrap}
-#sync{position:fixed;right:10px;bottom:8px;z-index:50;background:rgba(16,41,74,.92);color:#fff;font-size:12px;white-space:nowrap;cursor:pointer;padding:4px 10px;border-radius:12px}@media print{#sync{display:none}}
-@media (max-width:1000px){aside{width:240px}header.top h1{font-size:17px;margin-right:6px}}
+header.top{flex-wrap:wrap;gap:6px}header.top h1{white-space:nowrap;font-size:calc(17px*var(--ts,1));margin-right:4px}header.top .btn{font-size:calc(13px*var(--ts,1));padding:6px 8px}header.top{padding:8px 10px}header.top .btn{white-space:nowrap}
+#sync{position:fixed;right:10px;bottom:8px;z-index:50;background:rgba(16,41,74,.92);color:#fff;font-size:calc(12px*var(--ts,1));white-space:nowrap;cursor:pointer;padding:4px 10px;border-radius:12px}@media print{#sync{display:none}}
+@media (max-width:1000px){aside{width:240px}header.top h1{font-size:calc(17px*var(--ts,1));margin-right:6px}}
 @media (pointer:coarse){.btn{padding:9px 14px}.btn.small{padding:7px 11px}}
 .stabs{display:flex;gap:6px;margin:6px 0 14px;flex-wrap:wrap;align-items:center}.stab[hidden]{display:none}
-th.srt{cursor:pointer;user-select:none;white-space:nowrap}th.srt:hover{text-decoration:underline}th.s-asc::after{content:" ▲";font-size:10px}th.s-desc::after{content:" ▼";font-size:10px}
+th.srt{cursor:pointer;user-select:none;white-space:nowrap}th.srt:hover{text-decoration:underline}th.s-asc::after{content:" ▲";font-size:calc(10px*var(--ts,1))}th.s-desc::after{content:" ▼";font-size:calc(10px*var(--ts,1))}
 </style>
 </head>
 <body>
 <header class="top">
-  <button class="btn" id="b-nav" title="Show or hide the recipe list" aria-label="Show or hide the recipe list" style="font-size:17px;padding:3px 10px">&#9776;</button>
+  <button class="btn" id="b-nav" title="Show or hide the recipe list" aria-label="Show or hide the recipe list" style="font-size:calc(17px*var(--ts,1));padding:3px 10px">&#9776;</button>
   <h1>📖 Recipes</h1>
   <span id="tabs"></span>
   <span class="spacer"></span>
@@ -200,7 +201,7 @@ th.srt{cursor:pointer;user-select:none;white-space:nowrap}th.srt:hover{text-deco
       <select id="filter">
         <option value="all">All</option>
         <option value="fav">★ Favourites</option>
-        <option value="bad" id="opt-bad">Salt out of range</option>
+        <option value="bad">Salt out of range</option>
       </select>
     </div>
     <div id="count"></div>
@@ -216,6 +217,11 @@ const $$ = (s, r) => Array.from((r || document).querySelectorAll(s));
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const clone = o => JSON.parse(JSON.stringify(o));
 let S = null;               // server state
+/* Text size: a per-device setting (kept in this browser, so the tablet and the PC can differ). */
+const TEXT_SIZES = [['normal', 'Normal', 1], ['large', 'Large', 1.12], ['larger', 'Larger', 1.25], ['largest', 'Largest', 1.4]];
+const textSizeKey = () => { let k = 'large'; try { k = localStorage.getItem('rb:ts') || 'large'; } catch (e) {} return TEXT_SIZES.some(x => x[0] === k) ? k : 'large'; };
+function applyTextSize(k) { const t = TEXT_SIZES.find(x => x[0] === k) || TEXT_SIZES[1]; document.documentElement.style.setProperty('--ts', t[2]); }
+applyTextSize(textSizeKey());
 const V = { page: 'recipe', id: null, edit: false, draft: null, refTab: null, onlyBad: true, coll: 'sausage', noteId: null, logEdit: null };
 const DEFAULT_TABS = [{ id: 'sausage', label: 'Sausage & bacon', emoji: '🌭' }, { id: 'pate', label: 'Pâté en croûte', emoji: '🥧' }, { id: 'other', label: 'Other recipes', emoji: '🍲' }];
 let COLLS = [], TABIDS = new Set(), COLL_NAME = {};
@@ -236,7 +242,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.12.0';
+const VERSION = '3.14.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -318,8 +324,9 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
    if(!L.length){const nz=s=>String(s).toLowerCase().replace(/\.[^.]+$/,'').replace(/[^a-z0-9]/g,''),stem=base.replace(/\.[^.]+$/,'');L=(await rq("name contains '"+q(stem)+"'"+NF)).filter(f=>nz(f.name)===nz(base))}
    if(!L.length)throw err('http','That file was not found in your Google Drive ('+base+')');
    const out={link:L[0].webViewLink,parent:(L[0].parents||[])[0]||'',id:L[0].id};cache[rel]=out;try{localStorage.setItem('rb2:lk',JSON.stringify(cache))}catch(e){}return out},
+  async putRoot(p,t){const m=await folders();if(!fid[p]){const r=await jq(`${API}/files?q=${enc("name='"+p+"' and '"+m['']+"' in parents and trashed=false")}&fields=files(id)&pageSize=5`);if(r.files.length)fid[p]=r.files[0].id}return this.put(p,t)},
   async get(p){if(!fid[p])throw err('http','no such file '+p,404);return (await api(`${API}/files/${fid[p]}?alt=media`)).text()},
-  async put(p,t,retry){const m=await folders(),[dir,name]=split(p),mime=p.endsWith('.json')?'application/json':'text/html';
+  async put(p,t,retry){const m=await folders(),[dir,name]=split(p),mime=p.endsWith('.json')?'application/json':p.endsWith('.csv')?'text/csv':'text/html';
    if(fid[p]){try{const r=await api(`${UP}/files/${fid[p]}?uploadType=media&fields=modifiedTime`,{method:'PATCH',headers:{'Content-Type':mime+'; charset=UTF-8'},body:t});const mt=Date.parse((await r.json()).modifiedTime);note('updated '+p+' ('+t.length+' chars)');return mt}catch(e){note('FAILED update '+p+': '+(e.message||e).toString().slice(0,120));if(e.status===404&&!retry){delete fid[p];return this.put(p,t,1)}throw e}}
    const b='cb'+Math.random().toString(36).slice(2),body=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[m[dir]]})}\r\n--${b}\r\nContent-Type: ${mime}; charset=UTF-8\r\n\r\n${t}\r\n--${b}--`;
    const r=await api(`${UP}/files?uploadType=multipart&fields=id,modifiedTime`,{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body}),j=await r.json();fid[p]=j.id;note('created '+p+' ('+t.length+' chars) id '+String(j.id).slice(0,6)+'\u2026 in folder '+String(m[dir]).slice(0,6)+'\u2026');return Date.parse(j.modifiedTime)},
@@ -331,15 +338,56 @@ const persist=()=>{try{localStorage.setItem('rb2:c:'+dev,JSON.stringify({F:FS,Q}
 const setStat=s=>{stat=s;const e=document.getElementById('sync');if(e)e.textContent=({synced:'\u25CF Synced'+(Drive===SimDrive?' (test)':''),signin:'\u25CB Tap here to sign in to Google Drive',loading:'Loading from Drive\u2026',saving:'Saving\u2026',offline:'\u25CB Offline, '+Q.length+' waiting to save',warn:'\u25B2 Synced, '+pullErr.length+' file(s) unreadable (tap for details)'})[s]||s;if(e)e.style.cursor='pointer';if(window.__rbReady&&typeof needWelcome==='function'&&needWelcome())renderWelcome()};
 const isJ=p=>p.endsWith('.json');
 const Store={get:p=>FS[p]?FS[p].v:undefined,keys:pre=>Object.keys(FS).filter(k=>k.startsWith(pre)),
- put(p,v){FS[p]={v,m:Date.now()};const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'put'});persist();flushQ()},
- del(p){delete FS[p];const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'del'});persist();flushQ()}};
+ put(p,v){FS[p]={v,m:Date.now()};const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'put'});persist();flushQ();catHook(p)},
+ del(p){delete FS[p];const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'del'});persist();flushQ();catHook(p)}};
 async function flushQ(){if(busy)return;busy=true;if(Drive.warm)Drive.warm();try{while(Q.length){setStat('saving');const q=Q[0];if(q.op==='put'){const e=FS[q.p];if(e){const m=await Drive.put(q.p,isJ(q.p)?JSON.stringify(e.v):e.v);if(FS[q.p]===e)e.m=m}}else await Drive.del(q.p);const i=Q.indexOf(q);if(i>=0)Q.splice(i,1);persist()}setStat('synced')}catch(e){setStat(e&&e.code==='auth'?'signin':'offline')}busy=false}
 let pullErr=[],pullAt=0;
 async function pull(){try{const L=await Drive.list(),seen={};let ch=false;pullErr=[];
- for(const f of L){seen[f.path]=1;if(Q.some(q=>q.p===f.path))continue;const c=FS[f.path];if(!c||c.m<f.modified){try{const t=await Drive.get(f.path);FS[f.path]={v:isJ(f.path)?JSON.parse(t):t,m:f.modified};ch=true}catch(e){if(e&&e.code==='auth')throw e;pullErr.push(f.path+': '+(e&&e.message||e))}}}
+ for(const f of L){seen[f.path]=1;if(f.path==='catalogue.csv'||f.path==='originals.csv')continue;if(Q.some(q=>q.p===f.path))continue;const c=FS[f.path];if(!c||c.m<f.modified){try{const t=await Drive.get(f.path);FS[f.path]={v:isJ(f.path)?JSON.parse(t):t,m:f.modified};ch=true}catch(e){if(e&&e.code==='auth')throw e;pullErr.push(f.path+': '+(e&&e.message||e))}}}
  for(const p of Object.keys(FS))if(!seen[p]&&!Q.some(q=>q.p===p)&&Date.now()-(FS[p].m||0)>6e5){delete FS[p];ch=true}persist();pullAt=Date.now();if(stat!=='saving')setStat(pullErr.length?'warn':'synced');return ch}catch(e){setStat(e&&e.code==='auth'?'signin':'offline');return false}}
 
-Store.putMany=function(puts,dels){dels.forEach(p=>{delete FS[p];const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'del'})});puts.forEach(([p,v])=>{FS[p]={v,m:Date.now()};const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'put'})});persist();flushQ()};
+Store.putMany=function(puts,dels){dels.forEach(p=>{delete FS[p];const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'del'})});puts.forEach(([p,v])=>{FS[p]={v,m:Date.now()};const i=Q.findIndex(q=>q.p===p);if(i>=0)Q.splice(i,1);Q.push({p,op:'put'})});persist();flushQ();if(puts.length||dels.length)catHook('recipes/')};
+/* ---- catalogue.csv and originals.csv: one row per recipe/note and one per original file, so everything can be found without opening each recipe ---- */
+const csvCell = v => { const x = String(v == null ? '' : v); return /[",\r\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+const csvText = rows => '\uFEFF' + rows.map(r => r.map(csvCell).join(',')).join('\r\n') + '\r\n';
+const srcParts = v => { const x = String(v || '').trim(), m = /^drive:([^/]+)\/(.*)$/.exec(x); return m ? { kind: 'by ID', id: m[1], name: m[2] } : x ? { kind: 'name only', id: '', name: x } : { kind: 'none', id: '', name: '' }; };
+const driveUrl = id => id ? 'https://drive.google.com/file/d/' + id + '/view' : '';
+function catalogueRows() {
+  const st = buildState(), tabName = id => COLL_NAME[id] || id;
+  const rows = [['Type', 'ID', 'Name', 'Tab', 'Category', 'Favourite', 'Source', 'Source file ID', 'Source file name', 'Source URL', 'Updated']];
+  st.recipes.map(r => ({ r, t: tabName(collOf(r)) })).sort((a, b) => a.t.localeCompare(b.t) || String(a.r.category || '').localeCompare(String(b.r.category || '')) || byName(a.r, b.r))
+    .forEach(({ r, t }) => { const p = srcParts(r.source); rows.push(['recipe', r.id, r.name, t, r.category || '', r.favorite ? 'yes' : '', p.kind, p.id, p.name, driveUrl(p.id), r.updated_at || '']); });
+  st.notes.forEach(n => { const p = srcParts(n.file_path); rows.push(['note', n.id, n.title, 'Notes', n.kind || '', '', p.kind, p.id, p.name, driveUrl(p.id), n.updated_at || '']); });
+  return rows;
+}
+let catT = null, catBusy = false;
+const catHash = x => { let h = 5381; for (let i = 0; i < x.length; i++) h = ((h << 5) + h + x.charCodeAt(i)) | 0; return String(h); };
+function catHook(p) { if (/^(recipes|notes)\//.test(p)) scheduleCatalogue(); }
+function scheduleCatalogue(ms) { if (Drive === SimDrive || !Drive.putRoot) return; clearTimeout(catT); catT = setTimeout(() => writeCatalogue(false), ms == null ? 8000 : ms); }
+async function writeCatalogue(force) {
+  if (Drive === SimDrive || !Drive.putRoot || catBusy || !S) return false;
+  if (Q.length || busy) { scheduleCatalogue(4000); return false; }
+  const d = Drive.diag ? Drive.diag() : {}; if (!force && !d.signed) return false;
+  catBusy = true;
+  try {
+    const t = csvText(catalogueRows()), h = catHash(t); let last = ''; try { last = localStorage.getItem('rb2:cat'); } catch (e) {}
+    if (!force && last === h) return false;
+    await Drive.putRoot('catalogue.csv', t);
+    try { localStorage.setItem('rb2:cat', h); } catch (e) {}
+    return true;
+  } catch (e) { return false; } finally { catBusy = false; }
+}
+async function writeOriginals() {   // needs the Drive read permission (the same one Check source files uses)
+  if (!Drive.treeFiles || !Drive.putRoot) throw new Error('Not available in test mode');
+  const files = await Drive.treeFiles(), st = buildState(), use = {}, nm = {};
+  const add = (v, label) => { const p = srcParts(v); if (p.id) { (use[p.id] = use[p.id] || []).push(label); nm[p.id] = p.name; } };
+  st.recipes.forEach(r => add(r.source, r.name)); st.notes.forEach(n => add(n.file_path, n.title + ' (note)'));
+  const rows = [['File ID', 'File name', 'Folder', 'Used by (count)', 'Used by', 'Link']], inTree = new Set(files.map(f => f.id));
+  files.slice().sort((a, b) => (a.path + '/' + a.name).localeCompare(b.path + '/' + b.name)).forEach(f => { const u = use[f.id] || []; rows.push([f.id, f.name, String(f.path).replace(/^Recipe Book Data \/ /, ''), u.length, u.join('; '), driveUrl(f.id)]); });
+  Object.keys(use).filter(id => !inTree.has(id)).forEach(id => rows.push([id, nm[id], '(outside the files folder)', use[id].length, use[id].join('; '), driveUrl(id)]));
+  await Drive.putRoot('originals.csv', csvText(rows));
+  return { files: files.length, unused: rows.slice(1).filter(r => !r[3]).length, outside: rows.slice(1).filter(r => r[2] === '(outside the files folder)').length };
+}
 /* ---- Drive status window ---- */
 function showDiag() {
   const d = Drive.diag ? Drive.diag() : {}, g = d.dg;
@@ -572,41 +620,77 @@ async function showDriveScan() {
 async function checkSources() {
   if (!Drive.fileInfo) return toast('Checking source files needs the Google Drive connection (not available in test mode)', true);
   const o = document.createElement('div'); o.className = 'overlay';
-  o.innerHTML = '<div class="modal wide"><h3>Source files <span class="muted" style="font-size:.6em">v' + esc(VERSION) + '</span></h3><div class="pop-body"><p class="muted" id="sc-prog">Starting…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn small" id="sc-link" hidden></button><button class="btn small" id="sc-link2" hidden></button><button class="btn primary" id="sc-close">Close</button></div></div>';
+  o.innerHTML = '<div class="modal wide"><h3>Source files <span class="muted" style="font-size:.6em">v' + esc(VERSION) + '</span></h3><div class="pop-body"><p class="muted" id="sc-prog">Reading your Drive folder…</p></div><div class="row"><button class="btn small" id="sc-copy" hidden>Copy report</button><button class="btn primary" id="sc-close">Close</button></div></div>';
   const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
   o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); o.querySelector('#sc-close').onclick = close; document.addEventListener('keydown', onKey); document.body.appendChild(o);
   const recs = S.recipes.slice().concat((S.notes || []).filter(n => String(n.file_path || '').trim()).map(n => ({ id: n.id, name: n.title, source: n.file_path, isNote: true }))).sort((a, b) => String(a.name).localeCompare(String(b.name))), rows = [];
-  let done = 0, fatal = '';
+  let done = 0, fatal = '', tmap = null;
+  Drive._tree = null;
+  /* One listing of the files folder tells us which ID links are fine, so most items need no separate Drive call. */
+  try { const tf = await Drive.treeFiles(); tmap = new Map(tf.map(f => [f.id, f])); } catch (e) { if (e.code === 'auth' || /allow reading/i.test(e.message || '')) fatal = e.message || String(e); }
+  const where = f => f.path ? String(f.path).replace(/^Recipe Book Data \/ /, '') : '';
+  const candOf = async f => ({ id: f.id, name: f.name, where: f.path ? where(f) : (f.parents && f.parents[0] ? await Drive.folderPath(f.parents[0]) : 'My Drive') });
   const one = async r => {
-    const src = String(r.source || '').trim(), row = { r, src, st: 'none', where: '', id: '', fname: '' };
+    const src = String(r.source || '').trim(), row = { r, src, st: 'none', where: '', id: '', fname: '', cands: [] };
     try {
       let m;
       if (!src) row.st = 'none';
       else if ((m = /^drive:([^/]+)\//.exec(src))) {
-        const i = await Drive.fileInfo(m[1]);
-        if (!i) row.st = 'missing'; else if (i.trashed) { row.st = 'trashed'; row.where = 'Trash'; } else { row.st = 'ok'; row.where = (i.parents && i.parents[0]) ? await Drive.folderPath(i.parents[0]) : 'My Drive'; }
+        const hit = tmap && tmap.get(m[1]);
+        if (hit) { row.st = 'ok'; row.where = where(hit); }
+        else {
+          const i = await Drive.fileInfo(m[1]);
+          if (!i) { row.st = 'missing'; row.where = 'That file no longer exists in Drive. Open the recipe and choose its file again.'; } else if (i.trashed) { row.st = 'trashed'; row.where = 'Trash'; } else { row.st = 'ok'; row.where = (i.parents && i.parents[0]) ? await Drive.folderPath(i.parents[0]) : 'My Drive'; }
+        }
       } else if (/^Imported recipes\//.test(src)) row.st = 'none';
       else {
         const L = await Drive.findByName(src);
         if (!L.length) { row.st = 'notfound'; try { const cl = closestNames(src, await Drive.treeFiles()); row.where = (Drive._treeErr ? 'Folder search failed: ' + Drive._treeErr + '. ' : '') + (cl.length ? 'Closest in Recipe Book Data: ' + cl.join('  |  ') : (Drive._treeInfo ? 'Nothing similar in Recipe Book Data (' + Drive._treeInfo.count + ' files seen)' : '')); } catch (e) { row.where = e.message || ''; } }
-        else if (L[0].approx) { row.st = L.length === 1 ? 'maybe' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = L.slice(0, 3).map(f => f.path + ' / ' + f.name).join('  |  '); }
-        else { row.st = L.length === 1 ? 'byname' : 'several'; row.id = L[0].id; row.fname = L[0].name; row.where = (await Promise.all(L.slice(0, 3).map(f => f.path ? f.path : f.parents && f.parents[0] ? Drive.folderPath(f.parents[0]) : 'My Drive'))).join('  |  ') + (L.length > 3 ? '  | …' : ''); }
+        else {
+          row.id = L[0].id; row.fname = L[0].name; row.cands = await Promise.all(L.slice(0, 6).map(candOf));
+          row.st = L[0].approx ? (L.length === 1 ? 'maybe' : 'several') : (L.length === 1 ? 'byname' : 'several');
+          row.where = row.cands.slice(0, 3).map(c => c.where + ' / ' + c.name).join('  |  ') + (L.length > 3 ? '  | …' : '');
+        }
       }
     } catch (e) { if (e.code === 'auth' || /allow reading/i.test(e.message || '')) fatal = e.message; row.st = 'error'; row.where = e.message || String(e); }
     rows.push(row); done++; const pg = o.querySelector('#sc-prog'); if (pg) pg.textContent = 'Checking ' + done + ' of ' + recs.length + '…';
   };
-  const queue = recs.slice(); await Promise.all([0, 1, 2, 3].map(async () => { while (queue.length && !fatal) await one(queue.shift()); }));
+  if (!fatal) { const queue = recs.slice(); await Promise.all([0, 1, 2, 3].map(async () => { while (queue.length && !fatal) await one(queue.shift()); })); }
   if (!o.isConnected) return;
   if (fatal) { o.querySelector('.pop-body').innerHTML = '<p>' + esc(fatal) + '</p>'; return; }
   rows.sort((a, b) => SRC_ORDER.indexOf(a.st) - SRC_ORDER.indexOf(b.st) || String(a.r.name).localeCompare(String(b.r.name)));
   const cnt = {}; rows.forEach(x => cnt[x.st] = (cnt[x.st] || 0) + 1);
-  const sum = SRC_ORDER.filter(k => cnt[k]).map(k => cnt[k] + ' ' + SRC_LABEL[k].charAt(0).toLowerCase() + SRC_LABEL[k].slice(1)).join(', ');
+  const ATT = ['error', 'notfound', 'missing', 'trashed', 'several', 'maybe'], attn = rows.filter(x => ATT.includes(x.st)), byn = rows.filter(x => x.st === 'byname'), nos = rows.filter(x => x.st === 'none' && !x.r.isNote);
+  const pl = (n, w) => n + ' ' + w + (n === 1 ? '' : 's'), tabOf = r => r.isNote ? '📝 Notes' : ((COLLS.find(c => c[0] === collOf(r)) || [])[1] || '');
+  const key = x => x.r.id + (x.r.isNote ? 'n' : 'r');
+  const tr = (x, first) => '<tr><td>' + first + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>';
+  const head = '<thead><tr><th></th><th>Recipe</th><th>Tab</th><th>Source</th><th>Status</th><th>Where</th></tr></thead>';
+  const pickCell = x => (x.st === 'several' || x.st === 'maybe') && x.cands.length
+    ? '<select class="sc-cand" data-k="' + key(x) + '" style="width:auto;max-width:340px">' + x.cands.map((c, i) => '<option value="' + i + '">' + esc(c.where + ' / ' + c.name) + '</option>').join('') + '</select> <button class="btn small sc-pick" data-k="' + key(x) + '" type="button">Link this one</button>'
+    : '<span class="muted">' + esc(x.where) + '</span>';
+  const sum = [(cnt.ok || 0) + ' of ' + rows.length + ' items are linked by ID and open directly.', byn.length ? pl(byn.length, 'item') + ' found by name (one tap links them by ID).' : '', attn.length ? '<b>' + pl(attn.length, 'item') + ' need a decision.</b>' : (byn.length ? '' : '<b>Nothing needs your attention.</b>'), nos.length ? pl(nos.length, 'recipe') + (nos.length === 1 ? ' has' : ' have') + ' no source file.' : ''].filter(Boolean).join(' ');
   const body = o.querySelector('.pop-body');
-  const NEED = ['none', 'notfound', 'missing', 'trashed', 'several'], tabOf = r => r.isNote ? '📝 Notes' : ((COLLS.find(c => c[0] === collOf(r)) || [])[1] || '');
-  body.innerHTML = '<p><b>' + rows.length + ' items (recipes and notes):</b> ' + esc(sum) + '.</p><div style="max-height:52vh;overflow:auto"><table><thead><tr><th></th><th>Recipe</th><th>Tab</th><th>Source</th><th>Status</th><th>Where</th></tr></thead><tbody>' +
-    rows.map(x => '<tr><td>' + (NEED.includes(x.st) && !x.r.isNote ? '<input type="checkbox" class="sc-tick" data-st="' + x.st + '" data-tab="' + collOf(x.r) + '" data-r="' + x.r.id + '" style="width:auto">' : '') + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>').join('') + '</tbody></table></div>' +
-    (rows.some(x => NEED.includes(x.st) && !x.r.isNote) ? '<div class="row-inline" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button class="btn small" id="sc-tickall" type="button">Tick all with no source file in</button><select id="sc-tab" style="width:auto"><option value="">all tabs</option>' + [...new Set(rows.filter(x => x.st === 'none' && !x.r.isNote).map(x => collOf(x.r)))].map(t => '<option value="' + t + '">' + esc(((COLLS.find(c => c[0] === t) || [])[1]) || t) + '</option>').join('') + '</select><input id="sc-name" placeholder="File name, e.g. Sausage_Calculator_v30.xlsm" style="flex:1;min-width:220px"><button class="btn small" id="sc-set" type="button">Use this file for the ticked recipes</button></div>' : '') +
-    '<p class="help">“Linked by ID” files keep opening if you rename or move them. “Found by name” is fine as it stands; it only stops working if the file is renamed or a second file gets the same name, and the optional button above turns those into ID links. For recipes that only exist in a workbook (for example the Sausage Calculator), tick them, type the workbook’s file name and use it as their source.</p>';
+  body.innerHTML = '<p>' + sum + '</p>' +
+    (byn.length ? '<p><button class="btn primary" id="sc-linkall" type="button">Link all ' + byn.length + ' found-by-name file' + (byn.length === 1 ? '' : 's') + ' by ID</button></p>' : '') +
+    (attn.length ? '<div style="max-height:40vh;overflow:auto"><table><thead><tr><th>Item</th><th>Tab</th><th>Source</th><th>Status</th><th>Choose the file / where</th></tr></thead><tbody>' +
+      attn.map(x => '<tr><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td data-k="' + key(x) + '">' + pickCell(x) + '</td></tr>').join('') + '</tbody></table></div>' : '') +
+    (nos.length ? '<details style="margin-top:10px"><summary>Recipes with no source file (' + nos.length + ')</summary><div style="max-height:34vh;overflow:auto"><table>' + head + '<tbody>' + nos.map(x => tr(x, '<input type="checkbox" class="sc-tick" data-st="none" data-tab="' + collOf(x.r) + '" data-r="' + x.r.id + '" style="width:auto">')).join('') + '</tbody></table></div>' +
+      '<div class="row-inline" style="margin-top:10px;flex-wrap:wrap;gap:6px"><button class="btn small" id="sc-tickall" type="button">Tick all with no source file in</button><select id="sc-tab" style="width:auto"><option value="">all tabs</option>' + [...new Set(nos.map(x => collOf(x.r)))].map(t => '<option value="' + t + '">' + esc(((COLLS.find(c => c[0] === t) || [])[1]) || t) + '</option>').join('') + '</select><input id="sc-name" placeholder="File name, e.g. Sausage_Calculator_v30.xlsm" style="flex:1;min-width:220px"><button class="btn small" id="sc-set" type="button">Use this file for the ticked recipes</button></div></details>' : '') +
+    '<details style="margin-top:10px"><summary>Show all ' + rows.length + ' items</summary><div style="max-height:40vh;overflow:auto"><table>' + head + '<tbody>' + rows.map(x => tr(x, '')).join('') + '</tbody></table></div></details>' +
+    '<p class="help">“Linked by ID” files keep opening if you rename or move them, and this check no longer needs to look at them again. Recipes that only exist in a workbook (for example the Sausage Calculator) can be given that workbook as their source in the “no source file” list.</p>';
+  const linkOne = async (x, id, name) => { const v = 'drive:' + id + '/' + name; if (x.r.isNote) { const nn = clone(S.notes.find(q => q.id === x.r.id)); nn.file_path = v; await api('PUT', '/api/notes/' + x.r.id, nn); } else { const d = clone(x.r); d.source = v; await api('PUT', '/api/recipes/' + x.r.id, d); } };
+  const la = o.querySelector('#sc-linkall'); if (la) la.onclick = async () => {
+    if (!await confirmBox('<h3>Link ' + pl(byn.length, 'file') + ' by ID?</h3><p>Each of these recipes will point straight at its file in Drive. It then opens without any searching, and keeps working if the file is renamed or moved. The files themselves are not touched.</p>', 'Link them all')) return;
+    la.disabled = true; let n = 0, bad = 0;
+    for (const x of byn) { la.textContent = 'Linking ' + (n + bad + 1) + ' of ' + byn.length + '…'; try { await linkOne(x, x.id, x.fname); n++; } catch (e) { bad++; toast(x.r.name + ': ' + e.message, true); } }
+    await load(); close(); render(); toast(n + ' linked' + (bad ? ', ' + bad + ' failed' : '')); checkSources();
+  };
+  o.querySelectorAll('.sc-pick').forEach(b => b.onclick = async () => {
+    const x = rows.find(y => key(y) === b.dataset.k), sel = o.querySelector('.sc-cand[data-k="' + b.dataset.k + '"]'), c = x && sel && x.cands[+sel.value];
+    if (!c) return; b.disabled = true; sel.disabled = true;
+    try { await linkOne(x, c.id, c.name); const td = b.closest('td'); td.textContent = 'Linked ✔ ' + c.where + ' / ' + c.name; await load(); toast('Linked ' + x.r.name); }
+    catch (e) { b.disabled = false; sel.disabled = false; toast(e.message || String(e), true); }
+  });
   const ta = o.querySelector('#sc-tickall'); if (ta) ta.onclick = () => { const tb = o.querySelector('#sc-tab').value; o.querySelectorAll('.sc-tick[data-st="none"]').forEach(c => { if (!tb || c.dataset.tab === tb) c.checked = true; }); };
   const st = o.querySelector('#sc-set'); if (st) st.onclick = async () => {
     const ids = Array.from(o.querySelectorAll('.sc-tick:checked')).map(c => +c.dataset.r), nm = o.querySelector('#sc-name').value.trim();
@@ -622,19 +706,7 @@ async function checkSources() {
   };
   const cp = o.querySelector('#sc-copy'); cp.hidden = false;
   cp.onclick = async () => { const t = rows.map(x => [x.r.name, linkName(x.src), SRC_LABEL[x.st], x.where].join('\t')).join('\n'); try { await navigator.clipboard.writeText(t); toast('Report copied'); } catch (e) { toast('Could not copy: ' + e.message, true); } };
-  const doLink = (btn, list, text, title) => {
-    if (!list.length) return;
-    btn.hidden = false; btn.textContent = text;
-    btn.onclick = async () => {
-      if (!await confirmBox('<h3>' + title + '</h3><p>Each recipe’s Source file or note’s linked file changes to a direct link to the file shown in the Where column. The files themselves are not touched.</p>', 'Link them')) return;
-      let n = 0; btn.disabled = true;
-      for (const x of list) { try { if (x.r.isNote) { const nn = clone(S.notes.find(q => q.id === x.r.id)); nn.file_path = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/notes/' + x.r.id, nn); } else { const d = clone(x.r); d.source = 'drive:' + x.id + '/' + x.fname; await api('PUT', '/api/recipes/' + x.r.id, d); } n++; } catch (e) { toast(x.r.name + ': ' + e.message, true); } }
-      await load(); toast(n + ' linked'); close(); render();
-    };
-  };
-  const fx = rows.filter(x => x.st === 'byname'), mb = rows.filter(x => x.st === 'maybe'), pl = (n, w) => n + ' ' + w + (n > 1 ? 's' : '');
-  doLink(o.querySelector('#sc-link'), fx, 'Make ' + pl(fx.length, 'name-based link') + ' permanent (optional)', 'Link ' + pl(fx.length, 'file') + ' by ID?');
-  doLink(o.querySelector('#sc-link2'), mb, 'Link ' + mb.length + ' possible match' + (mb.length > 1 ? 'es' : '') + ' by ID', 'Link ' + mb.length + ' possible match' + (mb.length > 1 ? 'es' : '') + ' by ID? Check the Where column first.');
+  writeOriginals().catch(() => {});   // keep originals.csv in step with what this check just saw
 }
 const linkName = s => String(s || '').replace(/^drive:[^/]+\//, '');
 async function openFile(path, folder) {
@@ -948,8 +1020,8 @@ function drawLoin(r, f) {
   const g1 = x => fmtNum(r1(x), 1);
   let h = '<table><thead><tr><th>Ingredient</th><th class="num">Recipe (g)</th><th class="num">Fat %</th><th class="num">Loin (g)</th><th class="num">Back fat (g)</th></tr></thead><tbody>';
   q.rows.forEach(x => { h += '<tr><td>' + esc(x.name) + '</td><td class="num">' + g1(x.g) + '</td><td class="num">' + fmtNum(r1(x.fc * 100), 1) + '</td><td class="num"><b>' + g1(x.l) + '</b></td><td class="num"><b>' + g1(x.b) + '</b></td></tr>'; });
-  if (q.rows.length > 1) h += '<tr class="grp"><td>Total</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.g, 0)) + '</td><td></td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.l, 0)) + '</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.b, 0)) + '</td></tr>';
-  h += '</tbody></table><p class="help">If you can only get loin, use these weights in place of the line above. The total weight and the total fat are the same as the original cut (loin ' + fmtNum(r1(q.fl * 100), 1) + '% fat, back fat ' + fmtNum(r1(q.fb * 100), 1) + '% fat, from Settings → Ingredient norms). Add the back fat to any back fat already in the recipe.</p>';
+  h += '<tr class="grp"><td>Total loin to buy</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.g, 0)) + '</td><td></td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.l, 0)) + '</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.b, 0)) + '</td></tr>';
+  h += '</tbody></table><p class="help">If you can only get loin, use these weights in place of the line above. The total weight and the total fat are the same as the original cut (loin ' + fmtNum(r1(q.fl * 100), 1) + '% fat, back fat ' + fmtNum(r1(q.fb * 100), 1) + '% fat, from Settings → Ingredient norms). Add the back fat to any back fat already in the recipe. To scale the whole recipe by the loin you have, choose “Total loin” in Make this recipe.</p>';
   box.innerHTML = h;
 }
 function drawSaltOther(r, f) {
@@ -1133,6 +1205,7 @@ function renderTabs() {
 async function setColl(c) {
   if (dirty && !(await confirmBox('<h3>Discard your changes?</h3><p>You have edits that have not been saved.</p>', 'Discard', true))) return;
   dirty = false; V.coll = c; V.edit = false; V.draft = null; V.logEdit = null; V.fromSearch = false;
+  $('#q').value = ''; $('#filter').value = 'all';
   try { localStorage.setItem('rb.coll', c); } catch (e) {}
   if (c === 'notes') { V.page = 'note'; if (!S.notes.find(n => n.id === V.noteId)) V.noteId = (S.notes[0] || {}).id || null; }
   else {
@@ -1144,19 +1217,33 @@ async function setColl(c) {
 }
 
 /* ====================== sidebar list ====================== */
+/* The dropdown under the filter box: All, Favourites, the salt option, then every category of the current tab (with counts). */
+function buildFilter(notes) {
+  const sel = $('#filter'), cur = sel.value, cnt = {};
+  let cats;
+  if (notes) { S.notes.forEach(n => { const k = n.kind || ''; cnt[k] = (cnt[k] || 0) + 1; }); cats = Object.keys(cnt); }
+  else { S.recipes.forEach(r => { if (collOf(r) === V.coll) cnt[r.category || ''] = (cnt[r.category || ''] || 0) + 1; }); cats = categoriesFor(V.coll); if (cnt[''] && !cats.includes('')) cats.push(''); }
+  cats = cats.slice().sort((a, b) => ((a === '') - (b === '')) || a.localeCompare(b));
+  const top = [['all', 'All']]; if (!notes) top.push(['fav', '★ Favourites'], ['bad', V.coll === 'sausage' ? 'Salt out of range' : 'High salt']);
+  const html = top.map(x => '<option value="' + x[0] + '">' + esc(x[1]) + '</option>').join('') +
+    (cats.length ? '<optgroup label="Categories">' + cats.map(c => '<option value="cat:' + esc(c) + '">' + esc(c || 'Uncategorised') + ' (' + (cnt[c] || 0) + ')</option>').join('') + '</optgroup>' : '');
+  if (sel.dataset.sig !== html) { sel.innerHTML = html; sel.dataset.sig = html; }
+  sel.value = Array.from(sel.options).some(o => o.value === cur) ? cur : 'all';
+  return sel.value;
+}
 function renderList() {
   if (V.coll === 'notes') return renderNoteList();
-  const q = $('#q').value.trim().toLowerCase(), f = $('#filter').value;
-  $('#opt-bad').textContent = V.coll === 'sausage' ? 'Salt out of range' : 'High salt';
+  const q = $('#q').value.trim().toLowerCase(), f = buildFilter(false), isCat = f.startsWith('cat:'), cat = isCat ? f.slice(4) : '';
   const inColl = S.recipes.filter(r => collOf(r) === V.coll);
-  const base = q ? S.recipes : inColl;
+  const base = (q && !isCat) ? S.recipes : inColl;
   const rs = base.filter(r => {
     if (f === 'fav' && !r.favorite) return false;
+    if (isCat && (r.category || '') !== cat) return false;
     if (f === 'bad') { if (collOf(r) === 'sausage') { const s = calc(r, 1).status; if (s !== 'low' && s !== 'high') return false; } else if (saltStatusOther(saltAnalysis(r, 1), collOf(r)) !== 'high') return false; }
     if (!q) return true;
     return r.name.toLowerCase().includes(q) || (r.category || '').toLowerCase().includes(q) || r.ingredients.some(i => i.name.toLowerCase().includes(q));
   });
-  $('#count').textContent = q ? rs.length + ' matches in all recipe tabs' : rs.length + ' of ' + inColl.length + ' recipes';
+  $('#count').textContent = (q && !isCat) ? rs.length + ' matches in all recipe tabs' : rs.length + ' of ' + inColl.length + ' recipes';
   const groups = {}; rs.forEach(r => { const g = r.category || 'Uncategorised'; (groups[g] = groups[g] || []).push(r); });
   let h = '';
   Object.keys(groups).sort((a, b) => a.localeCompare(b)).forEach(g => {
@@ -1168,9 +1255,8 @@ function renderList() {
   $('#list').innerHTML = h || '<div class="empty">No recipes match.</div>';
 }
 function renderNoteList() {
-  const q = $('#q').value.trim().toLowerCase();
-  $('#opt-bad').hidden = true;
-  const ns = S.notes.filter(n => !q || n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q) || n.kind.toLowerCase().includes(q));
+  const q = $('#q').value.trim().toLowerCase(), f = buildFilter(true), cat = f.startsWith('cat:') ? f.slice(4) : null;
+  const ns = S.notes.filter(n => (cat === null || (n.kind || '') === cat) && (!q || n.title.toLowerCase().includes(q) || n.body.toLowerCase().includes(q) || n.kind.toLowerCase().includes(q)));
   $('#count').textContent = ns.length + ' of ' + S.notes.length + ' notes';
   const groups = {}; ns.forEach(n => (groups[n.kind] = groups[n.kind] || []).push(n));
   let h = '';
@@ -1199,8 +1285,11 @@ function getScale(r) {
   }
   return s;
 }
+const LOIN_KEY = '\u0001loin', LOIN_LABEL = 'Total loin (if using loin and back fat instead)';
+const loinBase = r => loinEquiv(r, 1).rows.reduce((a, x) => a + x.l, 0);
 function factorOf(r) {
   const s = getScale(r);
+  if (s.mode === 'ing' && s.ing === LOIN_KEY) { const b = loinBase(r); return s.target > 0 && b > 0 ? s.target / b : 1; }
   if (s.mode === 'total') {
     const base = calc(r, 1).total;
     return s.total > 0 && base > 0 ? s.total / base : 1;
@@ -1238,7 +1327,7 @@ function renderRecipe() {
       <label><input type="radio" name="smode" value="total" ${sc.mode === 'total' ? 'checked' : ''}> By total weight</label>
       <span id="sc-ing" ${sc.mode === 'ing' ? '' : 'hidden'}>
         <input type="number" id="sc-target" min="0" step="any" value="${sc.target == null ? '' : esc(round2(sc.target))}"> ${esc(ingSel ? ingSel.unit : 'g')} of
-        <select id="sc-name">${names.map(n => `<option ${n === sc.ing ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
+        <select id="sc-name">${names.map(n => `<option value="${esc(n)}" ${n === sc.ing ? 'selected' : ''}>${esc(n)}</option>`).join('')}${loinBase(r) > 0 ? `<option value="${LOIN_KEY}" ${sc.ing === LOIN_KEY ? 'selected' : ''}>${esc(LOIN_LABEL)}</option>` : ''}</select>
       </span>
       <span id="sc-tot" ${sc.mode === 'total' ? '' : 'hidden'}><input type="number" id="sc-total" min="0" step="any" value="${esc(round2(sc.total))}"> g in total</span>
       <button class="btn small" data-mul="0.5">½×</button><button class="btn small" data-mul="2">2×</button><button class="btn small" data-mul="3">3×</button>
@@ -1256,7 +1345,7 @@ function renderRecipe() {
   ${r.method.trim() ? `<div class="card"><h2>Method</h2><div class="rich">${steps(r.method)}</div></div>` : ''}
   ${r.notes.trim() ? `<div class="card"><h2>Notes</h2><div class="rich">${rich(r.notes)}</div></div>` : ''}
   <div class="card noprint"><h2>Source file</h2><div class="filebar">${r.source ? `<code>${esc(linkName(r.source))}</code><button class="btn small" id="a-src">Open file</button><button class="btn small" id="a-srcf">Show in folder</button><button class="btn small" id="a-srcn">Replace…</button>` : `<span class="muted">No source file yet.</span><button class="btn small" id="a-srcn">Attach file…</button>`}<input type="file" id="a-srcpick" hidden></div></div>
-  <p class="muted noprint" style="font-size:12px">Last saved ${esc(r.updated_at)}</p>`;
+  <p class="muted noprint" style="font-size:calc(12px*var(--ts,1))">Last saved ${esc(r.updated_at)}</p>`;
   drawAmounts(r);
   [['#saltline', 'salt', 'salt'], ['#fatline', 'fat', 'fat']].forEach(([sel, kind, w]) => { const e = $(sel); if (!e) return; e.classList.add('clk'); e.title = 'Click for the detailed ' + w + ' analysis'; e.onclick = () => showAnalysis(r, kind); });
   $('#a-fav').onclick = async () => { const d = clone(r); d.favorite = !d.favorite; await saveRecipe(r.id, d); };
@@ -1276,7 +1365,7 @@ function renderRecipe() {
   $$('input[name=smode]').forEach(el => el.onchange = () => { sc.mode = el.value; renderRecipe(); });
   $('#sc-target').oninput = e => { sc.target = parseFloat(e.target.value); drawAmounts(r); };
   $('#sc-total').oninput = e => { sc.total = parseFloat(e.target.value); drawAmounts(r); };
-  $('#sc-name').onchange = e => { sc.ing = e.target.value; const i = r.ingredients.find(x => x.name === sc.ing); sc.target = i ? i.amount : null; renderRecipe(); };
+  $('#sc-name').onchange = e => { sc.ing = e.target.value; const i = r.ingredients.find(x => x.name === sc.ing); sc.target = sc.ing === LOIN_KEY ? r2(loinBase(r)) : (i ? i.amount : null); renderRecipe(); };
   $$('[data-mul]').forEach(b => b.onclick = () => {
     const k = parseFloat(b.dataset.mul);
     if (sc.mode === 'ing') sc.target = (sc.target || 0) * k; else sc.total = (sc.total || 0) * k;
@@ -2025,7 +2114,7 @@ function impCardHTML() {
     ${im.warnings.map(w => '<p class="help">ⓘ ' + esc(w) + '</p>').join('')}
     ${im.dupe ? '<p style="color:var(--bad)"><b>A recipe called “' + esc(im.dupe) + '” already exists.</b> Change the name before saving.</p>' : ''}
     <div class="row-inline"><button class="btn small" id="imp-orig">Show the original text</button>
-      ${im.token ? `<label class="row-inline" style="font-size:13px"><input type="checkbox" id="imp-keep" ${im.keep ? 'checked' : ''} style="width:auto"> Keep a copy of the file in Drive (Recipe Book Data/files) and link it</label>` : ''}
+      ${im.token ? `<label class="row-inline" style="font-size:calc(13px*var(--ts,1))"><input type="checkbox" id="imp-keep" ${im.keep ? 'checked' : ''} style="width:auto"> Keep a copy of the file in Drive (Recipe Book Data/files) and link it</label>` : ''}
       <button class="btn small" id="imp-again">Import a different file</button></div>
     ${im.dropped.length ? `<details style="margin-top:8px"><summary class="help" style="cursor:pointer">Left out: ${im.dropped.length} line${im.dropped.length === 1 ? '' : 's'} (adverts, hashtags, page furniture)</summary><ul class="help">${im.dropped.map(d => '<li>' + esc(d.t) + ' <i>— ' + esc(d.why) + '</i></li>').join('')}</ul></details>` : ''}</div>`;
 }
@@ -2473,7 +2562,7 @@ function renderRanges() {
     keys.forEach((k, n) => {
       const rt = ruleText(k);
       h += '<tr>' + (n === 0 ? '<td rowspan="' + keys.length + '" style="border-left:5px solid ' + catColour(cat) + ';font-weight:700;color:' + catColour(cat) + '">' + esc(cat) + '</td>' : '') +
-        '<td style="white-space:nowrap"><b>' + esc(rt.range) + '</b>' + (k !== 'none' && k.endsWith('total') ? '<br><span class="muted" style="font-size:12px">whole mix</span>' : '') + '</td><td>' +
+        '<td style="white-space:nowrap"><b>' + esc(rt.range) + '</b>' + (k !== 'none' && k.endsWith('total') ? '<br><span class="muted" style="font-size:calc(12px*var(--ts,1))">whole mix</span>' : '') + '</td><td>' +
         groups[k].map(r => '<a href="#" data-open="' + r.id + '">' + esc(r.name) + '</a>').join(', ') + '</td></tr>';
     });
   });
@@ -2548,6 +2637,7 @@ function renderSettings() {
   m.innerHTML = `<div class="rhead"><h1>Settings</h1></div>
   <div class="stabs"><button class="btn" data-stb="org">Organisation</button><button class="btn" data-stb="salt">Salt &amp; Fat</button><button class="btn" data-stb="flags">Ingredient flags</button><button class="btn" data-stb="meas">Measures</button><button class="btn" data-stb="data">Drive &amp; data</button><button class="btn primary" id="st-save" style="margin-left:auto">Save settings</button></div>
   <div class="stab" data-st="org">
+  <div class="card"><h2>Text size</h2><p class="help">Makes the text bigger or smaller on this device only (the tablet and the PC each keep their own choice). Printing always uses the normal size.</p><div class="row-inline" id="ts-row">${TEXT_SIZES.map(t => `<label class="btn ${textSizeKey() === t[0] ? 'on' : ''}" style="cursor:pointer"><input type="radio" name="tsz" value="${t[0]}" ${textSizeKey() === t[0] ? 'checked' : ''} hidden> ${t[1]}</label>`).join('')}</div></div>
   <div class="card" id="tabs-card"></div>
   <div class="card" id="cats-card"></div>
   </div><div class="stab" data-st="salt">
@@ -2592,8 +2682,9 @@ function renderSettings() {
       <label class="btn">Import…<input type="file" id="d-import" accept=".json,application/json" hidden></label></div>
     <p class="help">Import replaces everything with the contents of an export file (from this version or from Recipe Book 2.x on Windows). Export first if you want a copy of what is here now.</p></div>
   <div class="card"><h2>Open file links</h2>
-    <p class="help">“Open file” looks for the file by name in your Google Drive. The first time, Google asks you to allow Recipe Book to read your Drive files. Files added through Import are kept in <code>Recipe Book Data/files</code> and open directly.</p>
-    <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button><button class="btn" id="d-check">Check source files</button><button class="btn" id="d-scan">Show what the app sees in Recipe Book Data</button></div></div>
+    <p class="help">A recipe whose source is linked <b>by ID</b> opens its file directly, however the file is renamed or moved. Anything still linked by name is searched for in your Drive (the first time, Google asks you to allow Recipe Book to read your Drive files), and Check source files turns those into ID links in one tap. Files added through Import are kept in <code>Recipe Book Data/files</code> and open directly.</p>
+    <p class="help">The app also keeps two lists in <code>Recipe Book Data</code>: <code>catalogue.csv</code> (every recipe and note with its source file, updated after each save) and <code>originals.csv</code> (every file in <code>files</code>, its folder and which recipes use it; updated by Check source files and the button below).</p>
+    <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button><button class="btn" id="d-check">Check source files</button><button class="btn" id="d-cat">Update catalogue now</button><button class="btn" id="d-scan">Show what the app sees in Recipe Book Data</button></div></div>
   <div class="card"><h2>Trash</h2>${S.trash.length ? '<table>' + S.trash.map(t => '<tr><td>' + esc(t.name) + '</td><td class="muted">' + esc(t.category) + '</td><td class="muted">' + esc(t.updated_at) + '</td><td><button class="btn small" data-un="' + t.id + '">Restore</button> <button class="btn small danger" data-pg="' + t.id + '">Delete forever</button></td></tr>').join('') + '</table>' : '<p class="muted">Empty.</p>'}</div>
   <p class="muted">Recipe Book ${esc(info.version)}</p></div>`;
   const stShow = n => { V.stab = n; $$('.stab').forEach(d => { d.hidden = d.dataset.st !== n; }); $$('[data-stb]').forEach(b => b.classList.toggle('on', b.dataset.stb === n)); $('#st-save').hidden = n === 'data' || n === 'org'; };
@@ -2642,7 +2733,9 @@ function renderSettings() {
   $('#d-sync').onclick = async () => { await syncNow(); render(); toast('Synced'); };
   $('#d-status').onclick = showDiag;
   $('#d-signin').onclick = async () => { try { await Drive.signIn(); await syncNow(); render(); } catch (e) { toast('Sign-in did not complete: ' + (e.message || e), true); } };
+  $$('input[name=tsz]').forEach(el => el.onchange = () => { try { localStorage.setItem('rb:ts', el.value); } catch (e) {} applyTextSize(el.value); $$('#ts-row label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); toast('Text size: ' + (TEXT_SIZES.find(t => t[0] === el.value) || [])[1]); });
   $('#d-check').onclick = checkSources;
+  $('#d-cat').onclick = async () => { try { if (!Drive.putRoot) throw new Error('Not available in test mode'); toast('Updating the catalogue…'); await writeCatalogue(true); const r = await writeOriginals(); toast('Catalogue updated: ' + r.files + ' original files listed, ' + r.unused + ' not used by any recipe' + (r.outside ? ', ' + r.outside + ' used from outside the files folder' : '')); } catch (e) { toast(e.message || String(e), true); } };
   $('#d-scan').onclick = showDriveScan;
   $('#d-allow').onclick = async () => { try { if (!Drive.allowRead) throw new Error('Not available in test mode'); await Drive.allowRead(); toast('Allowed'); } catch (e) { toast(e.message || String(e), true); } };
   $('#d-export').onclick = () => {
@@ -2689,7 +2782,7 @@ window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); 
     await load(); startView(); window.__rbReady = true; render();
     setStat('loading'); if (Drive.init) Drive.init();
     const had = S.recipes.length + S.notes.length;
-    await syncNow();
+    await syncNow(); scheduleCatalogue(3000);
     if (!had && (S.recipes.length + S.notes.length)) { startView(); render(); }
     else if (needWelcome()) renderWelcome();
   } catch (e) {
