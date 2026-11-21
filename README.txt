@@ -1,7 +1,11 @@
-Recipe Book v3.14.0 (web, Google Drive)
+Recipe Book v3.15.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.14.0
+New in 3.15.0
+- Pork substitute: on a Sausage & bacon recipe with a pork shoulder or belly line, Make this recipe has a "Pork substitute (loin + back fat)" tickbox. Ticked, the shoulder / belly lines show 0 and the pork loin line is added (or increased, if the recipe already has a pork loin / lean pork line) and the back fat line is added or increased, keeping the same total weight and the same fat (loin and back fat fat% come from Settings -> Ingredient norms). The loin line becomes the "By ingredient" reference, so type the weight of loin you have and everything else scales to it. Salt, fat and % of meat all follow the swapped amounts. Ticking or un-ticking keeps the batch at the same multiple of the recipe. The saved recipe is never changed unless you press Use as the recipe (it then replaces the shoulder / belly lines with the loin and back fat shown).
+- This replaces the "Using loin and back fat instead" card and the "Total loin" scaling choice from 3.14.0.
+
+In 3.14.0
 - Text size: Settings -> Organisation -> Text size (Normal, Large, Larger, Largest). It scales the text everywhere in the app and is kept per device, so the tablet and the PC can differ. The default is now Large (a little bigger than before). Printing always uses the normal size.
 - "Using loin and back fat instead": the card now always ends with a Total loin to buy line (with the total back fat to add), and "Total loin (if using loin and back fat instead)" is a new choice in Make this recipe -> By ingredient. Type the weight of loin you have and the whole recipe scales to use exactly that much loin.
 

@@ -85,6 +85,8 @@ td.num,th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:now
 tr.grp td{background:color-mix(in srgb,var(--cat) var(--tint),transparent);font-weight:700;font-size:calc(13px*var(--ts,1));color:var(--cat);padding:3px 8px}
 td.note{color:var(--muted);font-size:calc(13px*var(--ts,1))}
 tr.key td{font-weight:700;background:rgba(255,196,60,.22)}
+tr.sub-out td{color:var(--muted)} tr.sub-out td:first-child{text-decoration:line-through} tr.sub-in td{background:var(--accent-soft)} .subtag{font-size:calc(12px*var(--ts,1));color:var(--accent);font-weight:600}
+label.subtick{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;margin-right:12px;border:1px solid var(--accent);border-radius:7px;background:var(--panel);cursor:pointer}
 .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:calc(13px*var(--ts,1));font-weight:600}
 .badge.ok{background:var(--ok-bg);color:var(--ok)} .badge.low,.badge.high{background:var(--warn-bg);color:var(--warn)}
 .badge.unknown,.badge.nodata{background:var(--grey-bg);color:var(--muted)}
@@ -242,7 +244,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.14.0';
+const VERSION = '3.15.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1002,27 +1004,35 @@ function dotFor(r) {
   return '<span class="dot ' + (s === 'high' ? 'sh' : s === 'low' ? 'sl' : 'sm') + '" title="Salt ' + fmtNum(an.pct, 2) + '% - ' + { high: 'high', low: 'low', med: 'medium', unk: 'not final: salt with no amount is not counted' }[s] + '"></span>';
 }
 const r1 = x => Math.round(x * 10) / 10, r2 = x => Math.round(x * 100) / 100;
-const LOIN_RX = /\b(shoulder|belly)\b/i, NOT_PORK_RX = /\b(lamb|beef|veal|venison|mutton|goat|chicken|turkey|duck|rabbit)\b/i;
-function loinEquiv(r, f) {   // belly / shoulder lines as lean loin + back fat with the same weight and the same fat
-  const fl = (normFor('pork loin', 'fat') != null ? normFor('pork loin', 'fat') : 17.4) / 100, fb = (normFor('back fat', 'fat') != null ? normFor('back fat', 'fat') : 100) / 100, rows = [];
-  r.ingredients.forEach(i => {
-    if (!LOIN_RX.test(i.name) || NOT_PORK_RX.test(i.name)) return;
-    const g = gramsOf(i, f); if (g == null || !(g > 0)) return;
+/* ---- Pork substitute: no shoulder or belly, so use loin + back fat with the same total weight and the same fat ---- */
+const SUB_SRC_RX = /\b(shoulder|belly)\b/i, NOT_PORK_RX = /\b(lamb|beef|veal|venison|mutton|goat|chicken|turkey|duck|rabbit)\b/i;
+const LOIN_LINE_RX = /\b(pork loin|lean pork|pork,?\s*lean|loin)\b/i, BF_LINE_RX = /\b(back ?fat|fat ?back|fatback)\b/i;
+function subParts(r) {   // the shoulder / belly lines that can be swapped, and the loin + back fat each turns into (at 1x)
+  const nf = (k, d) => (normFor(k, 'fat') != null ? normFor(k, 'fat') : d) / 100, fl = nf('pork loin', 17.4), fb = nf('back fat', 100), src = [];
+  r.ingredients.forEach((i, ix) => {
+    if (!SUB_SRC_RX.test(i.name) || NOT_PORK_RX.test(i.name)) return;
+    const g = gramsOf(i, 1); if (g == null || !(g > 0)) return;
     const fc = ingFat(i).fr; if (!(fc > fl + 1e-6) || !(fb > fc)) return;
-    const b = g * (fc - fl) / (fb - fl); rows.push({ name: i.name, g, fc, l: g - b, b });
+    const b = g * (fc - fl) / (fb - fl); src.push({ ix, g, l: g - b, b });
   });
-  return { rows, fl, fb };
+  return { src, fl, fb };
 }
-function drawLoin(r, f) {
-  const card = $('#loin-card'), box = $('#loin'); if (!card || !box) return;
-  const q = loinEquiv(r, f); if (!q.rows.length) { card.style.display = 'none'; return; }
-  card.style.display = '';
-  const g1 = x => fmtNum(r1(x), 1);
-  let h = '<table><thead><tr><th>Ingredient</th><th class="num">Recipe (g)</th><th class="num">Fat %</th><th class="num">Loin (g)</th><th class="num">Back fat (g)</th></tr></thead><tbody>';
-  q.rows.forEach(x => { h += '<tr><td>' + esc(x.name) + '</td><td class="num">' + g1(x.g) + '</td><td class="num">' + fmtNum(r1(x.fc * 100), 1) + '</td><td class="num"><b>' + g1(x.l) + '</b></td><td class="num"><b>' + g1(x.b) + '</b></td></tr>'; });
-  h += '<tr class="grp"><td>Total loin to buy</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.g, 0)) + '</td><td></td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.l, 0)) + '</td><td class="num">' + g1(q.rows.reduce((a, x) => a + x.b, 0)) + '</td></tr>';
-  h += '</tbody></table><p class="help">If you can only get loin, use these weights in place of the line above. The total weight and the total fat are the same as the original cut (loin ' + fmtNum(r1(q.fl * 100), 1) + '% fat, back fat ' + fmtNum(r1(q.fb * 100), 1) + '% fat, from Settings → Ingredient norms). Add the back fat to any back fat already in the recipe. To scale the whole recipe by the loin you have, choose “Total loin” in Make this recipe.</p>';
-  box.innerHTML = h;
+const canSub = r => collOf(r) === 'sausage' && subParts(r).src.length > 0;
+function subRecipe(r) {   // a copy of the recipe with the swap applied; the saved recipe is never touched
+  const p = subParts(r), v = clone(r), isSrc = new Set(p.src.map(x => x.ix)), r3 = x => Math.round(x * 1000) / 1000;
+  const L = p.src.reduce((a, x) => a + x.l, 0), B = p.src.reduce((a, x) => a + x.b, 0);
+  const lo = v.ingredients.find((i, ix) => !isSrc.has(ix) && LOIN_LINE_RX.test(i.name) && !NOT_PORK_RX.test(i.name) && gramsOf(i, 1) != null);
+  const bo = v.ingredients.find((i, ix) => !isSrc.has(ix) && BF_LINE_RX.test(i.name) && gramsOf(i, 1) != null);
+  const grp = v.ingredients[p.src[0].ix].grp || '';
+  const addG = (i, g) => { const cur = gramsOf(i, 1) || 0, u = String(i.unit || '').trim().toLowerCase(); if (u === 'kg') i.amount = r3(i.amount + g / 1000); else { i.amount = r3(cur + g); i.unit = 'g'; } };
+  const fresh = (name, g) => ({ grp, name, unit: 'g', note: '', amount: r3(g), kind: 'meat', salt_frac: null, fat_frac: null, _sub: 'added' });
+  p.src.forEach(x => { v.ingredients[x.ix].amount = 0; v.ingredients[x.ix]._sub = 'replaced'; });
+  const add = []; let L1 = lo;
+  if (lo) { addG(lo, L); lo._sub = 'increased'; } else { L1 = fresh('Pork loin', L); add.push(L1); }
+  if (bo) { addG(bo, B); bo._sub = 'increased'; } else add.push(fresh('Back fat', B));
+  L1._role = 'loin';
+  if (add.length) v.ingredients.splice(p.src[0].ix + 1, 0, ...add);
+  return v;
 }
 function drawSaltOther(r, f) {
   const el = $('#saltline'), box = $('#saltan'); if (!el || !box) return;
@@ -1285,11 +1295,8 @@ function getScale(r) {
   }
   return s;
 }
-const LOIN_KEY = '\u0001loin', LOIN_LABEL = 'Total loin (if using loin and back fat instead)';
-const loinBase = r => loinEquiv(r, 1).rows.reduce((a, x) => a + x.l, 0);
 function factorOf(r) {
   const s = getScale(r);
-  if (s.mode === 'ing' && s.ing === LOIN_KEY) { const b = loinBase(r); return s.target > 0 && b > 0 ? s.target / b : 1; }
   if (s.mode === 'total') {
     const base = calc(r, 1).total;
     return s.total > 0 && base > 0 ? s.total / base : 1;
@@ -1300,11 +1307,12 @@ function factorOf(r) {
 }
 function renderRecipe() {
   const m = $('#main');
-  const r = (recipeById(V.id) && collOf(recipeById(V.id)) === V.coll ? recipeById(V.id) : null) || S.recipes.find(x => collOf(x) === V.coll);
-  if (!r) { m.innerHTML = '<div class="empty">No recipes in this tab yet.<br><br><button class="btn primary" id="first-new">＋ Add a recipe</button></div>'; $('#first-new').onclick = newRecipe; return; }
-  V.id = r.id;
+  const r0 = (recipeById(V.id) && collOf(recipeById(V.id)) === V.coll ? recipeById(V.id) : null) || S.recipes.find(x => collOf(x) === V.coll);
+  if (!r0) { m.innerHTML = '<div class="empty">No recipes in this tab yet.<br><br><button class="btn primary" id="first-new">＋ Add a recipe</button></div>'; $('#first-new').onclick = newRecipe; return; }
+  V.id = r0.id;
   if (V.edit) return renderEditor();
-  const sc = getScale(r), names = scalable(r);
+  const sc = getScale(r0); if (sc.sub && !canSub(r0)) sc.sub = false;
+  const r = sc.sub ? subRecipe(r0) : r0, names = scalable(r), subP = canSub(r0) ? subParts(r0) : null;
   const ingSel = r.ingredients.find(i => i.name === sc.ing);
   m.innerHTML = `
   <div class="rhead">
@@ -1323,11 +1331,12 @@ function renderRecipe() {
   </div>
   <div class="card make noprint"><h2>Make this recipe</h2>
     <div class="scale">
+      ${subP ? `<label class="subtick" title="No shoulder or belly? Swap those lines for pork loin and back fat"><input type="checkbox" id="sc-sub" style="width:auto" ${sc.sub ? 'checked' : ''}> <b>Pork substitute</b> (loin + back fat)</label>` : ''}
       <label><input type="radio" name="smode" value="ing" ${sc.mode === 'ing' ? 'checked' : ''}> By ingredient</label>
       <label><input type="radio" name="smode" value="total" ${sc.mode === 'total' ? 'checked' : ''}> By total weight</label>
       <span id="sc-ing" ${sc.mode === 'ing' ? '' : 'hidden'}>
         <input type="number" id="sc-target" min="0" step="any" value="${sc.target == null ? '' : esc(round2(sc.target))}"> ${esc(ingSel ? ingSel.unit : 'g')} of
-        <select id="sc-name">${names.map(n => `<option value="${esc(n)}" ${n === sc.ing ? 'selected' : ''}>${esc(n)}</option>`).join('')}${loinBase(r) > 0 ? `<option value="${LOIN_KEY}" ${sc.ing === LOIN_KEY ? 'selected' : ''}>${esc(LOIN_LABEL)}</option>` : ''}</select>
+        <select id="sc-name">${names.map(n => `<option value="${esc(n)}" ${n === sc.ing ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select>
       </span>
       <span id="sc-tot" ${sc.mode === 'total' ? '' : 'hidden'}><input type="number" id="sc-total" min="0" step="any" value="${esc(round2(sc.total))}"> g in total</span>
       <button class="btn small" data-mul="0.5">½×</button><button class="btn small" data-mul="2">2×</button><button class="btn small" data-mul="3">3×</button>
@@ -1335,11 +1344,11 @@ function renderRecipe() {
       <button class="btn small" id="sc-base" title="Save the amounts shown below as the new base recipe">Use as the recipe</button>
       <span class="factor" id="sc-factor"></span>
     </div>
+    ${sc.sub && subP ? `<p class="help">The shoulder / belly lines are set to 0 and replaced by pork loin and back fat, keeping the same total weight and the same fat (loin ${esc(fmtNum(r1(subP.fl * 100), 1))}% fat, back fat ${esc(fmtNum(r1(subP.fb * 100), 1))}%, from Settings → Ingredient norms). Under “By ingredient” type the weight of loin you have and everything else scales to it.</p>` : ''}
     ${names.length ? '' : '<p class="help">None of the ingredients has a weight yet, so there is nothing to scale.</p>'}
   </div>
   <div class="printonly muted" id="print-scale"></div>
   <div class="card"><h2>Ingredients</h2><div id="amounts"></div></div>
-  <div class="card" id="loin-card" style="display:none"><h2>Using loin and back fat instead</h2><div id="loin"></div></div>
   ${collOf(r) === 'sausage' ? '<div class="card" id="checks-card" style="display:none"><h2>Salt &amp; cure check</h2><div id="checks"></div></div>' : '<div class="card" id="saltan-card" style="display:none"><h2>Salt analysis</h2><div id="saltan"></div></div>'}
   <div class="card" id="fatan-card" style="display:none"><h2>Fat analysis</h2><div id="fatan"></div></div>
   ${r.method.trim() ? `<div class="card"><h2>Method</h2><div class="rich">${steps(r.method)}</div></div>` : ''}
@@ -1348,24 +1357,30 @@ function renderRecipe() {
   <p class="muted noprint" style="font-size:calc(12px*var(--ts,1))">Last saved ${esc(r.updated_at)}</p>`;
   drawAmounts(r);
   [['#saltline', 'salt', 'salt'], ['#fatline', 'fat', 'fat']].forEach(([sel, kind, w]) => { const e = $(sel); if (!e) return; e.classList.add('clk'); e.title = 'Click for the detailed ' + w + ' analysis'; e.onclick = () => showAnalysis(r, kind); });
-  $('#a-fav').onclick = async () => { const d = clone(r); d.favorite = !d.favorite; await saveRecipe(r.id, d); };
-  $('#a-edit').onclick = () => { V.edit = true; V.draft = clone(r); dirty = false; renderRecipe(); };
-  $('#a-dup').onclick = () => { const d = clone(r); const taken = new Set(allRecipes().map(x => String(x.name).toLowerCase())); let nn = r.name + ' (copy)', k = 2; while (taken.has(nn.toLowerCase())) nn = r.name + ' (copy ' + (k++) + ')'; d.name = nn; d.id = 0; d.favorite = false; delete d.versions; V.page = 'new'; V.draft = d; dirty = true; render(); };
+  $('#a-fav').onclick = async () => { const d = clone(r0); d.favorite = !d.favorite; await saveRecipe(r.id, d); };
+  $('#a-edit').onclick = () => { V.edit = true; V.draft = clone(r0); dirty = false; renderRecipe(); };
+  $('#a-dup').onclick = () => { const d = clone(r0); const taken = new Set(allRecipes().map(x => String(x.name).toLowerCase())); let nn = r.name + ' (copy)', k = 2; while (taken.has(nn.toLowerCase())) nn = r.name + ' (copy ' + (k++) + ')'; d.name = nn; d.id = 0; d.favorite = false; delete d.versions; V.page = 'new'; V.draft = d; dirty = true; render(); };
   addBackBar();
   $('#a-print').onclick = () => window.print();
   if ($('#a-src')) { $('#a-src').onclick = () => openFile(r.source); $('#a-srcf').onclick = () => openFile(r.source, true); }
   $('#a-srcn').onclick = () => $('#a-srcpick').click();
-  $('#a-srcpick').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { toast('Copying the file to Drive…'); const d = clone(r); d.source = await storeSourceFile(f); await saveRecipe(r.id, d); } catch (er) { toast('The file was not attached: ' + er.message, true); } };
-  $('#a-hist').onclick = () => showHistory(r);
+  $('#a-srcpick').onchange = async e => { const f = e.target.files[0]; if (!f) return; try { toast('Copying the file to Drive…'); const d = clone(r0); d.source = await storeSourceFile(f); await saveRecipe(r.id, d); } catch (er) { toast('The file was not attached: ' + er.message, true); } };
+  $('#a-hist').onclick = () => showHistory(r0);
   $('#a-del').onclick = async () => {
     if (await confirmBox('<h3>Delete “' + esc(r.name) + '”?</h3><p>It moves to the Trash. You can bring it back from Settings → Trash.</p>', 'Delete', true)) {
       try { await api('DELETE', '/api/recipes/' + r.id); await load(); V.id = null; toast('Moved to Trash'); render(); } catch (e) { toast(e.message, true); }
     }
   };
   $$('input[name=smode]').forEach(el => el.onchange = () => { sc.mode = el.value; renderRecipe(); });
+  const sb = $('#sc-sub'); if (sb) sb.onchange = () => {   // switching keeps the batch size: the same multiple of the recipe
+    const f = factorOf(r);
+    if (sb.checked) { const v = subRecipe(r0), ln = v.ingredients.find(i => i._role === 'loin'); sc.sub = true; sc.mode = 'ing'; sc.ing = ln.name; sc.target = r2(ln.amount * f); }
+    else { sc.sub = false; const nm = scalable(r0), rn = nm.includes(r0.ref) ? r0.ref : (nm[0] || ''), ing = r0.ingredients.find(i => i.name === rn); sc.mode = 'ing'; sc.ing = rn; sc.target = ing ? r2(ing.amount * f) : null; }
+    renderRecipe();
+  };
   $('#sc-target').oninput = e => { sc.target = parseFloat(e.target.value); drawAmounts(r); };
   $('#sc-total').oninput = e => { sc.total = parseFloat(e.target.value); drawAmounts(r); };
-  $('#sc-name').onchange = e => { sc.ing = e.target.value; const i = r.ingredients.find(x => x.name === sc.ing); sc.target = sc.ing === LOIN_KEY ? r2(loinBase(r)) : (i ? i.amount : null); renderRecipe(); };
+  $('#sc-name').onchange = e => { sc.ing = e.target.value; const i = r.ingredients.find(x => x.name === sc.ing); sc.target = i ? i.amount : null; renderRecipe(); };
   $$('[data-mul]').forEach(b => b.onclick = () => {
     const k = parseFloat(b.dataset.mul);
     if (sc.mode === 'ing') sc.target = (sc.target || 0) * k; else sc.total = (sc.total || 0) * k;
@@ -1373,9 +1388,9 @@ function renderRecipe() {
   });
   $('#sc-reset').onclick = () => { delete scaleState[r.id]; renderRecipe(); };
   $('#sc-base').onclick = async () => {
-    const f = factorOf(r); if (Math.abs(f - 1) < 1e-9) { toast('Already at the base amounts'); return; }
-    if (!(await confirmBox('<h3>Use these amounts as the recipe?</h3><p>Every amount is multiplied by ' + fmtNum(f, 3) + ' and saved (you can undo this from History).</p>', 'Save'))) return;
-    const d = clone(r); d.ingredients.forEach(i => { if (i.amount != null) i.amount = Math.round(i.amount * f * 1000) / 1000; });
+    const f = factorOf(r); if (Math.abs(f - 1) < 1e-9 && !sc.sub) { toast('Already at the base amounts'); return; }
+    if (!(await confirmBox('<h3>Use these amounts as the recipe?</h3><p>Every amount is multiplied by ' + fmtNum(f, 3) + (sc.sub ? ', the shoulder / belly lines are replaced by the loin and back fat shown,' : '') + ' and saved (you can undo this from History).</p>', 'Save'))) return;
+    const d = clone(r); d.ingredients = d.ingredients.filter(i => i._sub !== 'replaced'); d.ingredients.forEach(i => { delete i._sub; delete i._role; if (i.amount != null) i.amount = Math.round(i.amount * f * 1000) / 1000; });
     delete scaleState[r.id]; await saveRecipe(r.id, d);
   };
 }
@@ -1456,21 +1471,21 @@ function showAdditives(r) {
 function drawAmounts(r) {
   const f = factorOf(r), c = calc(r, f), base = calc(r, 1);
   const fe = $('#sc-factor'); if (fe) fe.textContent = '× ' + fmtNum(f, 3) + ' · batch ≈ ' + fmtNum(c.total) + ' g';
-  const ps = $('#print-scale'); if (ps) ps.textContent = 'Scaled × ' + fmtNum(f, 3) + ' · batch ≈ ' + fmtNum(c.total) + ' g';
+  const ps = $('#print-scale'); if (ps) ps.textContent = 'Scaled × ' + fmtNum(f, 3) + ' · batch ≈ ' + fmtNum(c.total) + ' g' + (r.ingredients.some(i => i._sub) ? ' · pork loin + back fat instead of shoulder / belly' : '');
   const sa = collOf(r) === 'sausage', ncol = sa ? 5 : 4;
   let h = '<table><thead><tr><th>Ingredient</th><th class="num">Amount</th><th>Unit</th>' + (sa ? '<th class="num">% of meat</th>' : '') + '<th>Note</th></tr></thead><tbody>', last = null;
   r.ingredients.forEach(i => {
     if ((i.grp || '') !== last) { last = i.grp || ''; if (last) h += '<tr class="grp"><td colspan="' + ncol + '">' + esc(last) + '</td></tr>'; }
     const g = gramsOf(i, f);
     const pct = g != null && c.meat > 0 && i.kind !== 'meat' ? fmtNum(g / c.meat * 100, 2) + '%' : '';
-    h += '<tr class="' + (i.kind === 'salt' ? 'key' : '') + '"><td>' + esc(i.name) + upfBadge(i.name) + '</td><td class="num">' + (i.amount == null ? '<span class="muted">–</span>' : esc(fmtNum(i.amount * f))) + '</td><td>' + esc(i.unit) + '</td>' + (sa ? '<td class="num muted">' + pct + '</td>' : '') + '<td class="note">' + esc(i.note) + '</td></tr>';
+    const tg = { replaced: 'replaced by loin + back fat', added: 'substitute', increased: 'includes substitute' }[i._sub] || '';
+    h += '<tr class="' + (i.kind === 'salt' ? 'key' : '') + (i._sub === 'replaced' ? ' sub-out' : i._sub ? ' sub-in' : '') + '"><td>' + esc(i.name) + upfBadge(i.name) + '</td><td class="num">' + (i.amount == null ? '<span class="muted">–</span>' : esc(fmtNum(i.amount * f))) + '</td><td>' + esc(i.unit) + '</td>' + (sa ? '<td class="num muted">' + pct + '</td>' : '') + '<td class="note">' + esc(i.note) + (tg ? ' <span class="subtag">' + esc(tg) + '</span>' : '') + '</td></tr>';
   });
   h += '</tbody></table>';
   $('#amounts').innerHTML = h;
   $('#amounts').onclick = e => { if (e.target.closest('.upfi')) showAdditives(r); };
   if (sa) { drawSaltLine(r, f, c); drawChecks(r, c, base); } else drawSaltOther(r, f);
   drawFat(r, f);
-  drawLoin(r, f);
   drawUpf(r, f);
 }
 function showAnalysis(r, kind) {
