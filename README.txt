@@ -1,7 +1,11 @@
-Recipe Book v3.18.0 (web, Google Drive)
+Recipe Book v3.19.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.18.0
+New in 3.19.0
+- Spices and herbs added to the built-in Ingredient norms (list version 5): black and white pepper, paprika, cumin, cayenne, curry powder, turmeric, cinnamon, cardamom, nutmeg, mace, allspice, fennel seed, caraway, juniper, star anise, saffron, fenugreek, ground and fresh ginger, thyme, marjoram, oregano, sage, rosemary, bay leaf, basil, mint, dill, tarragon, chives, plus dextrose, brandy, barley, morel, casing, starter culture and bactoferm. Dried and fresh herbs have separate rows ("Dried thyme" uses dried figures, plain "Thyme" fresh ones). A list you have already saved keeps everything it has, including your own edits and rows, and simply gains any of these it does not already contain; nothing is overwritten. Still deliberately unrecognised because they are ambiguous: fennel (seed or bulb), ginger, cloves, garam masala, vanilla, horseradish. Use the + button to add them with your own figures.
+- Lard stays typed as meat on the Sausage tab.
+
+In 3.18.0
 - Moving ingredients in the editor: clicking a line's up or down arrow now selects that line (it is highlighted) and shows a move bar that stays fixed at the top of the ingredient list: Moving <name> (line n of m), with Up, Down and Done buttons. Click Up or Down on the bar as many times as you like without moving the pointer; the line carries on moving and stays in view. Alt+Up / Alt+Down on the keyboard do the same. Done (or deleting the line) clears the selection.
 
 In 3.17.0

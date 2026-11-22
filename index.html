@@ -252,7 +252,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.18.0';
+const VERSION = '3.19.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -906,7 +906,7 @@ function saltFrac(i) {
   return 0;
 }
 /* ====================== salt and fat analysis ====================== */
-const NORMS_VERSION = 4;
+const NORMS_VERSION = 5;
 // [words in the name, salt % by weight, fat % by weight, weight of one item (g), salt % when used as a made-up liquid]. null = not set.
 const NORM_ROWS = [
   ['soy sauce',14,0],['fish sauce',25,0],['worcestershire',6,0],['stock cube',5,0,10,0.25],['bouillon',5,0,10,0.25],['oxo',5,0,10,0.25],['knorr',5,0,10,0.25],['stock',0.25,0],['miso',11,6],['marmite',11,0],
@@ -928,7 +928,18 @@ const NORM_ROWS = [
   ['spring onion',null,null,15],['onion',null,null,150],['shallot',null,null,30],['garlic',null,null,5],['carrot',null,null,80],['potato',null,0.2,150],['cherry tomato',null,null,15],['tomato',null,null,100],['red pepper',null,null,150],['green pepper',null,null,150],['yellow pepper',null,null,150],['celery',null,null,40],['leek',null,null,150],['lemon',null,null,100],['lime',null,null,60],['orange',null,null,200],['apple',null,null,150],['chilli',null,null,10],['mushroom',null,null,20],['aubergine',null,null,300],['courgette',null,null,200],['cucumber',null,null,300]
 ];
 const VEG_FAT = { 'spring onion': 0.5, onion: 0.1, shallot: 0.1, garlic: 0.5, carrot: 0.3, tomato: 0.3, 'cherry tomato': 0.3, 'red pepper': 0.3, 'green pepper': 0.3, 'yellow pepper': 0.3, celery: 0.2, leek: 0.5, lemon: 0.3, lime: 0.2, orange: 0.1, apple: 0.4, chilli: 0.4, mushroom: 0.5, aubergine: 0.2, courgette: 0.4, cucumber: 0.1 };
-const DEFAULT_NORMS = NORM_ROWS.map(r => { const o = { match: r[0] }; if (r[1] != null) o.salt = r[1]; if (r[2] != null) o.fat = r[2]; if (r[3] != null) o.each = r[3]; if (r[4] != null) o.liquid = r[4]; if (o.fat == null && VEG_FAT[o.match] != null) o.fat = VEG_FAT[o.match]; return o; });
+// Spices, herbs and a few odds and ends, added in list version 5 (everyday figures per 100 g from standard food tables: [words in the name, salt %, fat %]).
+// Dried and fresh herbs have separate rows: the longer match wins, so "Dried thyme" uses the dried figures and plain "Thyme" the fresh ones.
+const SPICE_ROWS = [
+  ['black pepper',0.05,3.3],['white pepper',0.1,2.1],['peppercorn',0.05,3.3],['paprika',0.2,13],['cumin',0.4,22],['cayenne',0.1,17],['curry powder',0.1,14],
+  ['turmeric',0.1,3.3],['cinnamon',0,1.2],['cardamom',0,6.7],['nutmeg',0,36],['mace',0.2,32],['allspice',0.2,8.7],['fennel seed',0.2,15],['caraway',0,14.6],
+  ['juniper',0,1],['star anise',0,16],['saffron',0.1,5.9],['fenugreek',0.1,6.4],['ground ginger',0.1,4.2],['fresh ginger',0,0.8],
+  ['dried thyme',0.1,7.4],['thyme',0,1.7],['dried marjoram',0.2,7],['marjoram',0,0.3],['dried oregano',0.1,10.3],['oregano',0,4.3],['dried sage',0,12.7],['sage',0,3],
+  ['dried rosemary',0,15.2],['rosemary',0,5.9],['bay lea',0.1,8.4],['dried basil',0,4.1],['basil',0,0.6],['dried mint',0,6],['mint',0,0.9],['dried dill',0.1,4.4],['dill',0,1.1],
+  ['dried tarragon',0.1,7.2],['tarragon',0,3],['chives',0,0.7],['dextrose',0,0],['brandy',0,0],['barley',0,1.2],['morel',0,0.5],['casing',0,0],['starter culture',0,0],['bactoferm',0,0]
+];
+const SPICE_MATCHES = SPICE_ROWS.map(r => r[0]);
+const DEFAULT_NORMS = NORM_ROWS.concat(SPICE_ROWS).map(r => { const o = { match: r[0] }; if (r[1] != null) o.salt = r[1]; if (r[2] != null) o.fat = r[2]; if (r[3] != null) o.each = r[3]; if (r[4] != null) o.liquid = r[4]; if (o.fat == null && VEG_FAT[o.match] != null) o.fat = VEG_FAT[o.match]; return o; });
 const DEFAULT_COUNT_UNITS = { clove: 5, stalk: 40, slice: 25, bunch: 30, handful: 30, tin: 400, can: 400, head: 50, piece: 50, nest: 60, pinch: 0.4, sprig: 1 };
 const SALT_SPOON = { tsp: 6, tbsp: 18, dssp: 10 };
 const VOLUME_UNITS = new Set(['ml', 'l', 'cl', 'dl', 'litre', 'litres', 'liter', 'liters', 'cup', 'cups', 'pint', 'pints', 'pt', 'quart', 'quarts', 'gallon', 'gallons']);
@@ -938,9 +949,12 @@ function effNorms() {
   const saved = S && S.settings.ingredient_norms;
   if (!Array.isArray(saved) || !saved.length) return DEFAULT_NORMS;
   if ((S.settings.norms_version || 1) >= NORMS_VERSION) return saved.filter(u => u.match !== 'salt');
-  if ((S.settings.norms_version || 1) === 3) {   // 3 -> 4: only the pork cut and back fat rows changed; keep everything else you saved
-    const cut = DEFAULT_NORMS.filter(x => CUT_NORMS.includes(x.match));
-    return saved.filter(u => u.match !== 'salt' && !CUT_NORMS.includes(u.match)).concat(cut);
+  const sv = S.settings.norms_version || 1;
+  if (sv === 3 || sv === 4) {   // 3 -> 4: the pork cut and back fat rows changed; 4 -> 5: spice and herb rows added. Everything else you saved is kept.
+    let list = saved.filter(u => u.match !== 'salt');
+    if (sv === 3) list = list.filter(u => !CUT_NORMS.includes(u.match)).concat(DEFAULT_NORMS.filter(x => CUT_NORMS.includes(x.match)));
+    const have = new Set(list.map(u => u.match));
+    return list.concat(DEFAULT_NORMS.filter(x => SPICE_MATCHES.includes(x.match) && !have.has(x.match)));
   }
   // saved by an older version: use the built-in list (corrected) and keep only the rows you added yourself
   const known = new Set(DEFAULT_NORMS.map(x => x.match));
