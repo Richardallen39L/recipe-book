@@ -1,7 +1,11 @@
-Recipe Book v3.19.0 (web, Google Drive)
+Recipe Book v3.20.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.19.0
+New in 3.20.0
+- Check source files: a linked file that is in the Bin or has gone now gets the same drop-down as the other problem items. It offers any live file in Drive with the same name, and Link this one switches the recipe or note to it.
+- Staying signed in to Google Drive (tablet): Google only issues sign-ins that last about an hour, and a tablet browser blocks the small sign-in window unless you have just tapped. The app now (1) remembers which Google account you used, so no account chooser is shown, (2) renews the sign-in on your first tap once it has run out or is within 10 minutes of running out, which is when the browser allows the window, and (3) records each sign-in in the Drive status window (tap the sync indicator), with whether the sign-in and account are kept on this device. The app never uses GitHub: it is only hosted there.
+
+In 3.19.0
 - Spices and herbs added to the built-in Ingredient norms (list version 5): black and white pepper, paprika, cumin, cayenne, curry powder, turmeric, cinnamon, cardamom, nutmeg, mace, allspice, fennel seed, caraway, juniper, star anise, saffron, fenugreek, ground and fresh ginger, thyme, marjoram, oregano, sage, rosemary, bay leaf, basil, mint, dill, tarragon, chives, plus dextrose, brandy, barley, morel, casing, starter culture and bactoferm. Dried and fresh herbs have separate rows ("Dried thyme" uses dried figures, plain "Thyme" fresh ones). A list you have already saved keeps everything it has, including your own edits and rows, and simply gains any of these it does not already contain; nothing is overwritten. Still deliberately unrecognised because they are ambiguous: fennel (seed or bulb), ginger, cloves, garam masala, vanilla, horseradish. Use the + button to add them with your own figures.
 - Lard stays typed as meat on the Sausage tab.
 

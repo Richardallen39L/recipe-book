@@ -252,7 +252,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.19.0';
+const VERSION = '3.20.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -265,15 +265,18 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
  let tokR=null,expR=0,tcR=null,pendR=null,ffid=null;const SCR='https://www.googleapis.com/auth/drive.readonly';
  async function tokenR(){if(tokR&&Date.now()<expR)return tokR;if(pendR)return pendR.p;await load();
   if(!tcR)tcR=google.accounts.oauth2.initTokenClient({client_id:CFG.clientId,scope:SCR,callback:r=>{if(!pendR)return;if(r.error)pendR.rej(err('auth',r.error));else{tokR=r.access_token;expR=Date.now()+(r.expires_in-60)*1000;pendR.res(tokR)}},error_callback:e=>{if(pendR)pendR.rej(err('auth',(e&&e.type)||'sign-in failed'))}});
-  const o={};o.p=new Promise((res,rej)=>{o.res=res;o.rej=rej});pendR=o;o.p.then(()=>{pendR=null},()=>{pendR=null});tcR.requestAccessToken({prompt:''});return o.p}
+  const o={};o.p=new Promise((res,rej)=>{o.res=res;o.rej=rej});pendR=o;o.p.then(()=>{pendR=null},()=>{pendR=null});tcR.requestAccessToken({prompt:'',...hintObj()});return o.p}
  try{const s=JSON.parse(localStorage.getItem('rb2:tok'));if(s&&s.e>Date.now()+60000){tok=s.t;exp=s.e}}catch(e){}
  const err=(code,m,status)=>Object.assign(new Error(m),{code,status});
  const load=()=>ready||(ready=new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://accounts.google.com/gsi/client';s.onerror=()=>{ready=null;rej(err('net','Google sign-in script did not load'))};
   s.onload=()=>{tc=google.accounts.oauth2.initTokenClient({client_id:CFG.clientId,scope:SC,
-   callback:r=>{if(!pend)return;if(r.error)pend.rej(err('auth',r.error));else{tok=r.access_token;exp=Date.now()+(r.expires_in-60)*1000;try{localStorage.setItem('rb2:tok',JSON.stringify({t:tok,e:exp}))}catch(e){}pend.res(tok)}},
-   error_callback:e=>{if(pend)pend.rej(err('auth',(e&&e.type)||'sign-in failed'))}});res()};document.head.appendChild(s)}));
- function token(){if(tok&&Date.now()<exp)return Promise.resolve(tok);if(pend)return pend.p;if(!tc)return load().then(()=>token());
-  const o={};o.p=new Promise((res,rej)=>{o.res=res;o.rej=rej});pend=o;o.p.then(()=>{pend=null},()=>{pend=null});tc.requestAccessToken({prompt:''});return o.p}
+   callback:r=>{if(!pend)return;if(r.error){note('Google refused the sign-in: '+r.error);pend.rej(err('auth',r.error))}else{tok=r.access_token;exp=Date.now()+(r.expires_in-60)*1000;try{localStorage.setItem('rb2:tok',JSON.stringify({t:tok,e:exp}))}catch(e){}note('signed in; the token lasts about '+Math.round((exp-Date.now())/6e4)+' minutes');learnHint(tok);pend.res(tok)}},
+   error_callback:e=>{note('sign-in did not complete: '+((e&&e.type)||'unknown'));if(pend)pend.rej(err('auth',(e&&e.type)||'sign-in failed'))}});res()};document.head.appendChild(s)}));
+ const HK='rb2:hint',hintObj=()=>{let h='';try{h=localStorage.getItem(HK)||''}catch(e){}return h?{hint:h}:{}};
+ function learnHint(t){try{if(localStorage.getItem(HK))return}catch(e){return}fetch(API+'/about?fields=user(emailAddress)',{headers:{Authorization:'Bearer '+t}}).then(r=>r.ok?r.json():null).then(j=>{const m=j&&j.user&&j.user.emailAddress;if(m)try{localStorage.setItem(HK,m)}catch(e){}}).catch(()=>{})}
+ function request(){const o={};o.p=new Promise((res,rej)=>{o.res=res;o.rej=rej});pend=o;o.p.then(()=>{pend=null},()=>{pend=null});const h=hintObj();note('asking Google for a new sign-in token (account remembered: '+(h.hint?'yes':'no')+')');tc.requestAccessToken({prompt:'',...h});return o.p}
+ function token(){if(tok&&Date.now()<exp)return Promise.resolve(tok);if(pend)return pend.p;if(!tc)return load().then(()=>token());return request()}
+ let cool=0;
  async function api(url,opt={}){const go=async t=>{try{return await fetch(url,{...opt,headers:{...(opt.headers||{}),Authorization:'Bearer '+t},cache:'no-store'})}catch(e){throw err('net',e.message)}};
   let r=await go(await token());if(r.status===401){tok=null;try{localStorage.removeItem('rb2:tok')}catch(e){}r=await go(await token())}
   if(!r.ok)throw err(r.status===401||r.status===403?'auth':'http','Drive '+r.status+' '+(await r.text()).slice(0,200),r.status);return r}
@@ -290,13 +293,17 @@ const GoogleDrive=(()=>{const SC='https://www.googleapis.com/auth/drive.file',AP
  const split=p=>{const i=p.lastIndexOf('/');return[i<0?'':p.slice(0,i),p.slice(i+1)]};
  return{async init(){try{await load()}catch(e){}},
   warm(){if(!(tok&&Date.now()<exp)&&tc)token().catch(()=>{})},
+  renew(){   // called from a tap, where the browser allows Google's small sign-in window: renews a token that has run out or is about to
+   let ever=false;try{ever=!!(localStorage.getItem('rb2:tok')||localStorage.getItem(HK))}catch(e){}
+   if(!ever||!tc||(tok&&exp-Date.now()>6e5)||Date.now()<cool)return null;
+   const p=pend?pend.p:request();p.catch(()=>{cool=Date.now()+3e5});return p},
   async signIn(){await load();return token()},
   async list(){const m=await folders(),inv=m.all;const cond=Object.keys(inv).map(i=>`'${i}' in parents`).join(' or '),cur={},cnt={};let pt='';
    do{const r=await jq(`${API}/files?q=${enc('('+cond+") and trashed=false and mimeType!='application/vnd.google-apps.folder'")}&fields=nextPageToken,files(id,name,modifiedTime,parents)&pageSize=1000${pt?'&pageToken='+pt:''}`);
     for(const f of r.files){const d=inv[f.parents&&f.parents[0]];if(d===undefined)continue;const p=d?d+'/'+f.name:f.name,mt=Date.parse(f.modifiedTime);cnt[d||'(root)']=(cnt[d||'(root)']||0)+1;if(!cur[p]||mt>=cur[p].m)cur[p]={id:f.id,m:mt}}pt=r.nextPageToken||''}while(pt);
    fid={};Object.entries(cur).forEach(([p,x])=>fid[p]=x.id);dg={at:Date.now(),folders:Object.keys(inv).map(i=>(inv[i]||'(root)')+' = "'+m.nm[i]+'" '+i.slice(0,6)+'\u2026'),counts:cnt,files:Object.keys(cur)};return Object.entries(cur).map(([p,x])=>({path:p,modified:x.m}))},
   async audit(){const m=await folders(),out={};for(const tr of['false','true']){const L=[];let pt='';do{const r=await jq(`${API}/files?q=${enc('trashed='+tr)}&fields=nextPageToken,files(id,name,mimeType,parents,createdTime)&pageSize=1000${pt?'&pageToken='+pt:''}`);L.push(...r.files);pt=r.nextPageToken||''}while(pt);out[tr]=L}return{out,all:m.all,wlog}},
-  diag(){return{wlog,dg,signed:!!(tok&&Date.now()<exp),mins:tok?Math.round((exp-Date.now())/6e4):0}},
+  diag(){let saved=false,hint=false;try{saved=!!localStorage.getItem('rb2:tok');hint=!!localStorage.getItem(HK)}catch(e){}return{wlog,dg,signed:!!(tok&&Date.now()<exp),mins:tok?Math.round((exp-Date.now())/6e4):0,saved,hint}},
   async putBlob(name,blob,mime){const m=await folders();if(!ffid){const F="mimeType='application/vnd.google-apps.folder'";const r=await jq(`${API}/files?q=${enc("name='files' and '"+m['']+"' in parents and "+F+" and trashed=false")}&fields=files(id)&pageSize=5`);ffid=r.files.length?r.files[0].id:await mk('files',m[''])}
    const b='rb'+Math.random().toString(36).slice(2),head=`--${b}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${JSON.stringify({name,parents:[ffid]})}\r\n--${b}\r\nContent-Type: ${mime||'application/octet-stream'}\r\n\r\n`;
    const r=await api(`${UP}/files?uploadType=multipart&fields=id,name`,{method:'POST',headers:{'Content-Type':'multipart/related; boundary='+b},body:new Blob([head,blob,`\r\n--${b}--`])});const j=await r.json();note('uploaded file '+name);return j},
@@ -404,11 +411,12 @@ function showDiag() {
   const cnt = pre => Store.keys(pre).filter(p => p.endsWith('.json')).length;
   const t = ['Recipe Book v' + VERSION,
     'Signed in: ' + (Drive === SimDrive ? 'test mode (no Drive)' : d.signed ? 'yes (token valid for about ' + d.mins + ' min)' : 'no / token expired'),
+    'Sign-in kept on this device: ' + (Drive === SimDrive ? 'n/a' : (d.saved ? 'yes' : 'no') + ', Google account remembered: ' + (d.hint ? 'yes' : 'no')),
     'Last Drive refresh: ' + (pullAt ? new Date(pullAt).toLocaleTimeString('en-GB') : 'none yet'), '',
     'Folders the app reads:', ...(g ? g.folders.map(x => '  ' + x) : ['  (not read yet)']), '',
     'Files found in Drive per folder: ' + (g ? JSON.stringify(g.counts) : '-'),
     'Held on this device: ' + cnt('recipes/') + ' recipes, ' + cnt('notes/') + ' notes, ' + cnt('reference/') + ' reference tables', '',
-    'Waiting to save: ' + Q.length, '', 'Recent uploads this session:',
+    'Waiting to save: ' + Q.length, '', 'Recent uploads and sign-ins this session:',
     ...(d.wlog && d.wlog.length ? d.wlog.map(x => '  ' + x) : ['  none since the page opened']),
     'Files that could not be read: ' + (pullErr.length ? '' : 'none'), ...pullErr.map(x => '  ' + x)].join('\n');
   const o = document.createElement('div'); o.className = 'overlay';
@@ -603,7 +611,7 @@ async function storeSourceFile(file) {   // keep a copy in Drive (Recipe Book Da
   const j = await Drive.putBlob(file.name, file, file.type); return 'drive:' + j.id + '/' + file.name;
 }
 const SRC_ORDER = ['error', 'notfound', 'missing', 'trashed', 'several', 'maybe', 'none', 'byname', 'ok'];
-const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Trash', several: 'Found in several places', maybe: 'Possible match (please check)', byname: 'Found by name (fine)', ok: 'Linked by ID', none: 'No source file' };
+const SRC_LABEL = { error: 'Could not check', notfound: 'Not found in Drive', missing: 'Linked file is gone', trashed: 'Linked file is in the Bin', several: 'Found in several places', maybe: 'Possible match (please check)', byname: 'Found by name (fine)', ok: 'Linked by ID', none: 'No source file' };
 const closestNames = (rel, files) => {
   const tok = x => String(x).toLowerCase().replace(/\.[^.]+$/, '').split(/[^\p{L}\p{N}]+/u).filter(w => w.length > 1), want = tok(String(rel).replace(/\\/g, '/').split('/').pop());
   if (!want.length) return [];
@@ -650,7 +658,11 @@ async function checkSources() {
         if (hit) { row.st = 'ok'; row.where = where(hit); }
         else {
           const i = await Drive.fileInfo(m[1]);
-          if (!i) { row.st = 'missing'; row.where = 'That file no longer exists in Drive. Open the recipe and choose its file again.'; } else if (i.trashed) { row.st = 'trashed'; row.where = 'Trash'; } else { row.st = 'ok'; row.where = (i.parents && i.parents[0]) ? await Drive.folderPath(i.parents[0]) : 'My Drive'; }
+          if (!i) { row.st = 'missing'; row.where = 'The linked file no longer exists in Drive.'; } else if (i.trashed) { row.st = 'trashed'; row.where = 'The linked file is in the Bin.'; } else { row.st = 'ok'; row.where = (i.parents && i.parents[0]) ? await Drive.folderPath(i.parents[0]) : 'My Drive'; }
+          if (row.st === 'missing' || row.st === 'trashed') {   // is there a live file with the same name to switch to?
+            const nm = src.replace(/^drive:[^/]+\//, '');
+            if (nm) { const L2 = (await Drive.findByName(nm)).filter(f => f.id !== m[1]); if (L2.length) { row.cands = await Promise.all(L2.slice(0, 6).map(candOf)); row.where += ' A file with this name is still in Drive: choose it below.'; } else row.where += ' No other file with this name was found.'; }
+          }
         }
       } else if (/^Imported recipes\//.test(src)) row.st = 'none';
       else {
@@ -675,8 +687,8 @@ async function checkSources() {
   const key = x => x.r.id + (x.r.isNote ? 'n' : 'r');
   const tr = (x, first) => '<tr><td>' + first + '</td><td>' + esc(x.r.name) + '</td><td class="muted">' + esc(tabOf(x.r)) + '</td><td class="muted">' + esc(linkName(x.src)) + '</td><td>' + esc(SRC_LABEL[x.st]) + '</td><td class="muted">' + esc(x.where) + '</td></tr>';
   const head = '<thead><tr><th></th><th>Recipe</th><th>Tab</th><th>Source</th><th>Status</th><th>Where</th></tr></thead>';
-  const pickCell = x => (x.st === 'several' || x.st === 'maybe') && x.cands.length
-    ? '<select class="sc-cand" data-k="' + key(x) + '" style="width:auto;max-width:340px">' + x.cands.map((c, i) => '<option value="' + i + '">' + esc(c.where + ' / ' + c.name) + '</option>').join('') + '</select> <button class="btn small sc-pick" data-k="' + key(x) + '" type="button">Link this one</button>'
+  const pickCell = x => ['several', 'maybe', 'missing', 'trashed'].includes(x.st) && x.cands.length
+    ? (x.st === 'missing' || x.st === 'trashed' ? '<div class="muted">' + esc(x.where) + '</div>' : '') + '<select class="sc-cand" data-k="' + key(x) + '" style="width:auto;max-width:340px">' + x.cands.map((c, i) => '<option value="' + i + '">' + esc(c.where + ' / ' + c.name) + '</option>').join('') + '</select> <button class="btn small sc-pick" data-k="' + key(x) + '" type="button">Link this one</button>'
     : '<span class="muted">' + esc(x.where) + '</span>';
   const sum = [(cnt.ok || 0) + ' of ' + rows.length + ' items are linked by ID and open directly.', byn.length ? pl(byn.length, 'item') + ' found by name (one tap links them by ID).' : '', attn.length ? '<b>' + pl(attn.length, 'item') + ' need a decision.</b>' : (byn.length ? '' : '<b>Nothing needs your attention.</b>'), nos.length ? pl(nos.length, 'recipe') + (nos.length === 1 ? ' has' : ' have') + ' no source file.' : ''].filter(Boolean).join(' ');
   const body = o.querySelector('.pop-body');
@@ -2944,6 +2956,12 @@ $('#b-quit').onclick = async () => {
 $('#q').oninput = () => renderList();
 $('#q').onkeydown = e => { if (e.key === 'Enter' && $('#q').value.trim()) { e.preventDefault(); V.sf.q = $('#q').value.trim(); V.fromSearch = false; go('search'); } };
 $('#filter').onchange = () => renderList();
+let lastRenew = 0;   // the first tap after the Google sign-in has run out renews it (a tap is when the browser allows the sign-in window)
+['pointerdown', 'keydown'].forEach(t => document.addEventListener(t, () => {
+  if (!Drive.renew || Date.now() - lastRenew < 60000) return;
+  const p = Drive.renew(); if (!p) return; lastRenew = Date.now();
+  p.then(() => { if (stat === 'signin') syncNow().catch(() => {}); }).catch(() => {});
+}, true));
 $('#nav-back').onclick = () => navGo(-1); $('#nav-fwd').onclick = () => navGo(1);
 document.addEventListener('keydown', e => { if (!e.altKey || e.ctrlKey || e.metaKey || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return; if (e.target && e.target.tagName === 'TEXTAREA') return; e.preventDefault(); navGo(e.key === 'ArrowLeft' ? -1 : 1); });
 ['mousedown', 'mouseup'].forEach(t => window.addEventListener(t, e => { if (e.button !== 3 && e.button !== 4) return; e.preventDefault(); if (t === 'mouseup') navGo(e.button === 3 ? -1 : 1); }));
