@@ -1,7 +1,10 @@
-Recipe Book v3.21.0 (web, Google Drive)
+Recipe Book v3.22.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.21.0
+New in 3.22.0
+- Settings has a new tab, Unrecognised, holding the Ingredients not in the list card (moved from Salt & Fat). The tab name shows how many ingredients are unrecognised, for example Unrecognised (4), and the count drops as you add them with the + button. This tab needs no Save settings button because each + saves straight away.
+
+In 3.21.0
 - Ingredients not in the list: a new card at the top of the page that holds the Ingredient norms (Settings), listing every ingredient in all your recipes that the Ingredient norms do not recognise, with how many recipes use it and a note where the name is genuinely ambiguous (fennel: seed or bulb; ginger: fresh or ground; cloves; garam masala; vanilla; horseradish; soy protein; plain pepper). Click + to add one with your own figures; the list refreshes. The add dialog shows the same note.
 
 In 3.20.0

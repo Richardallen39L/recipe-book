@@ -252,7 +252,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.21.0';
+const VERSION = '3.22.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1032,7 +1032,7 @@ function unkReport() {
 }
 function drawUnkList() {
   const box = $('#unk-list'); if (!box) return;
-  const list = unkReport();
+  const list = unkReport(), cn = $('#unk-count'); if (cn) cn.textContent = list.length ? ' (' + list.length + ')' : '';
   box.innerHTML = list.length
     ? '<p class="help">' + list.length + ' ingredient' + (list.length === 1 ? '' : 's') + ' in your recipes ' + (list.length === 1 ? 'is' : 'are') + ' not in the Ingredient norms, so their salt and fat count as 0. Click ＋ to add one with your own figures.</p><div style="max-height:46vh;overflow:auto"><table><thead><tr><th>Ingredient</th><th>Recipes</th><th>Worth knowing</th><th></th></tr></thead><tbody>' +
       list.map(e => '<tr><td><b>' + esc(e.name) + '</b></td><td class="muted" title="' + esc(e.recipes.join(', ')) + '">' + e.recipes.length + ': ' + esc(e.recipes.slice(0, 2).join(', ')) + (e.recipes.length > 2 ? ', …' : '') + '</td><td class="muted">' + esc(e.hint) + '</td><td><button type="button" class="unk" data-unk="' + esc(e.name) + '" data-hint="' + esc(e.hint) + '" title="Add to the Ingredient norms">＋</button></td></tr>').join('') + '</tbody></table></div>'
@@ -2835,7 +2835,7 @@ async function newRef() {
 function renderSettings() {
   const tg = targets(), un = clone(units()), info = S.info, m = $('#main');
   m.innerHTML = `<div class="rhead"><h1>Settings</h1></div>
-  <div class="stabs"><button class="btn" data-stb="org">Organisation</button><button class="btn" data-stb="salt">Salt &amp; Fat</button><button class="btn" data-stb="flags">Ingredient flags</button><button class="btn" data-stb="meas">Measures</button><button class="btn" data-stb="data">Drive &amp; data</button><button class="btn primary" id="st-save" style="margin-left:auto">Save settings</button></div>
+  <div class="stabs"><button class="btn" data-stb="org">Organisation</button><button class="btn" data-stb="salt">Salt &amp; Fat</button><button class="btn" data-stb="unk">Unrecognised<span id="unk-count"></span></button><button class="btn" data-stb="flags">Ingredient flags</button><button class="btn" data-stb="meas">Measures</button><button class="btn" data-stb="data">Drive &amp; data</button><button class="btn primary" id="st-save" style="margin-left:auto">Save settings</button></div>
   <div class="stab" data-st="org">
   <div class="card"><h2>Text size</h2><p class="help">Makes the text bigger or smaller on this device only (the tablet and the PC each keep their own choice). Printing always uses the normal size.</p><div class="row-inline" id="ts-row">${TEXT_SIZES.map(t => `<label class="btn ${textSizeKey() === t[0] ? 'on' : ''}" style="cursor:pointer"><input type="radio" name="tsz" value="${t[0]}" ${textSizeKey() === t[0] ? 'checked' : ''} hidden> ${t[1]}</label>`).join('')}</div></div>
   <div class="card" id="tabs-card"></div>
@@ -2856,7 +2856,6 @@ function renderSettings() {
     <p class="help">Used for the fat analysis on every tab, including Sausage. The defaults follow UK traffic-light labelling: <b>low</b> is 3 g or less per 100 g, <b>high</b> is more than 17.5 g. Give a tab its own limits if its food is naturally fatty (sausages, pâtés, cheese); leave a box empty to use the default.</p>
     <div class="form-grid" style="max-width:640px"><label class="f">Low up to<input id="f-low" type="number" step="0.5" value="${fatTargets('__').low}"></label><label class="f">High above<input id="f-high" type="number" step="0.5" value="${fatTargets('__').high}"></label></div>
     <table class="edit" style="max-width:560px;margin-top:10px"><thead><tr><th>Tab</th><th>Low up to</th><th>High above</th></tr></thead><tbody>${tabList().map(t => { const o = ((S.settings.fat_targets || {}).tabs || {})[t.id] || []; return `<tr><td>${esc((t.emoji ? t.emoji + ' ' : '') + t.label)}</td><td><input class="f-tl" data-tab="${esc(t.id)}" type="number" step="0.5" value="${o[0] == null ? '' : o[0]}" placeholder="default" style="width:90px"></td><td><input class="f-th" data-tab="${esc(t.id)}" type="number" step="0.5" value="${o[1] == null ? '' : o[1]}" placeholder="default" style="width:90px"></td></tr>`; }).join('')}</tbody></table></div>
-  <div class="card"><h2>Ingredients not in the list</h2><div id="unk-list"></div></div>
   <div class="card"><h2>Meat words (Sausage &amp; bacon tab)</h2>
     <p class="help">When you import a recipe on the Sausage &amp; bacon tab, an ingredient is typed as meat if its name contains one of these words (and it is weighed in g or kg). Built in: pork, beef, lamb, mutton, venison, veal, chicken, turkey, duck, goose, boar, neck, shoulder, belly, loin, rump, chuck, brisket, mince, gammon, bacon, back fat, lard, liver, offal, trotters, jowl, cheeks, tongue, ham, leg, topside, silverside, game, rabbit, sausage, kielbasa, chorizo, salami, pancetta, lardons, prosciutto. Add your own below, separated by commas.</p>
     <textarea id="mw-extra" rows="2" style="max-width:640px" placeholder="for example: kangaroo, wild boar, mortadella">${esc(S.settings.meat_words_extra || '')}</textarea></div>
@@ -2864,6 +2863,8 @@ function renderSettings() {
     <p class="help">Typical salt and fat content (% by weight), the weight of one item (g), and the salt % to use when the ingredient is a made-up liquid (for example a stock cube dissolved in water), matched on the words in an ingredient's name; the longest match wins. They are everyday approximations: replace any of them with the figures from your own packs. An ingredient with a Salt % or Fat % typed in the recipe editor ignores this table.</p>
     <div style="max-height:340px;overflow:auto;border:1px solid var(--line);border-radius:8px;max-width:760px"><table class="edit" id="n-grid" style="margin:0"></table></div>
     <p><button class="btn small" id="n-add">＋ Add row</button> <button class="btn small" id="n-reset">Reset to the built-in list</button></p></div>
+  </div><div class="stab" data-st="unk">
+  <div class="card"><h2>Ingredients not in the list</h2><div id="unk-list"></div></div>
   </div><div class="stab" data-st="flags">
   <div class="card"><h2>Ingredient flags (additives and ultra-processed markers)</h2>
     <p class="help">Recipes are checked for these words in the ingredient names. A match shows a flag next to the ingredient and an “Additives” line at the top of the recipe, with the notes and workarounds below. Words are separated by commas and matched at the start of a word, in any language you add. Switch a row off to stop flagging it. “Curing (safety)” rows are shown but not counted.</p>
@@ -2891,7 +2892,7 @@ function renderSettings() {
     <div class="row-inline"><button class="btn" id="d-allow">Allow access to my Drive files</button><button class="btn" id="d-check">Check source files</button><button class="btn" id="d-cat">Update catalogue now</button><button class="btn" id="d-scan">Show what the app sees in Recipe Book Data</button></div></div>
   <div class="card"><h2>Trash</h2>${S.trash.length ? '<table>' + S.trash.map(t => '<tr><td>' + esc(t.name) + '</td><td class="muted">' + esc(t.category) + '</td><td class="muted">' + esc(t.updated_at) + '</td><td><button class="btn small" data-un="' + t.id + '">Restore</button> <button class="btn small danger" data-pg="' + t.id + '">Delete forever</button></td></tr>').join('') + '</table>' : '<p class="muted">Empty.</p>'}</div>
   <p class="muted">Recipe Book ${esc(info.version)}</p></div>`;
-  const stShow = n => { V.stab = n; $$('.stab').forEach(d => { d.hidden = d.dataset.st !== n; }); $$('[data-stb]').forEach(b => b.classList.toggle('on', b.dataset.stb === n)); $('#st-save').hidden = n === 'data' || n === 'org'; };
+  const stShow = n => { V.stab = n; $$('.stab').forEach(d => { d.hidden = d.dataset.st !== n; }); $$('[data-stb]').forEach(b => b.classList.toggle('on', b.dataset.stb === n)); $('#st-save').hidden = n === 'data' || n === 'org' || n === 'unk'; };
   $$('[data-stb]').forEach(b => { b.onclick = () => stShow(b.dataset.stb); }); stShow(V.stab || 'org');
   const ug = () => { $('#u-grid').innerHTML = '<thead><tr><th>Unit</th><th>Grams each</th><th></th></tr></thead><tbody>' + Object.keys(un).map(k => `<tr><td><input data-uk="${esc(k)}" value="${esc(k)}"></td><td><input data-uv="${esc(k)}" inputmode="decimal" value="${esc(un[k])}"></td><td><button class="mvb" data-ud="${esc(k)}">✕</button></td></tr>`).join('') + '</tbody>'; };
   ug();
