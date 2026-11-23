@@ -1,7 +1,10 @@
-Recipe Book v3.20.0 (web, Google Drive)
+Recipe Book v3.21.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.20.0
+New in 3.21.0
+- Ingredients not in the list: a new card at the top of the page that holds the Ingredient norms (Settings), listing every ingredient in all your recipes that the Ingredient norms do not recognise, with how many recipes use it and a note where the name is genuinely ambiguous (fennel: seed or bulb; ginger: fresh or ground; cloves; garam masala; vanilla; horseradish; soy protein; plain pepper). Click + to add one with your own figures; the list refreshes. The add dialog shows the same note.
+
+In 3.20.0
 - Check source files: a linked file that is in the Bin or has gone now gets the same drop-down as the other problem items. It offers any live file in Drive with the same name, and Link this one switches the recipe or note to it.
 - Staying signed in to Google Drive (tablet): Google only issues sign-ins that last about an hour, and a tablet browser blocks the small sign-in window unless you have just tapped. The app now (1) remembers which Google account you used, so no account chooser is shown, (2) renews the sign-in on your first tap once it has run out or is within 10 minutes of running out, which is when the browser allows the window, and (3) records each sign-in in the Drive status window (tap the sync indicator), with whether the sign-in and account are kept on this device. The app never uses GitHub: it is only hosted there.
 

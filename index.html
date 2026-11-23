@@ -252,7 +252,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.20.0';
+const VERSION = '3.21.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1017,10 +1017,32 @@ function unknownIng(i) {
 }
 const unkTip = n => '“' + n + '” is not in your Ingredient norms, so its salt and fat count as 0. Click ＋ to add it.';
 const unkChip = i => unknownIng(i) ? '<button type="button" class="unk" data-unk="' + esc(i.name) + '" title="' + esc(unkTip(i.name)) + '">＋</button>' : '';
-function addNormDialog(name, done) {
+const AMBIG_HINTS = [[/\bfennel\b/i, 'Seed (about 15% fat) or bulb (about 0.2%)?'], [/\bginger\b/i, 'Fresh (about 0.8% fat) or ground (about 4%)?'], [/\bcloves?\b/i, 'Spice cloves are about 13% fat; garlic cloves are already covered by Garlic.'],
+  [/garam masala/i, 'Blends vary, and some contain salt.'], [/\bvanilla\b/i, 'Pod, extract (alcohol) or paste (sugar)?'], [/horseradish/i, 'Fresh root, or prepared (salted, with vinegar)?'], [/soy protein/i, 'Varies by product.'], [/^\s*(?:ground |freshly ground )?peppers?\s*$/i, 'Black pepper (about 3% fat) or bell pepper (almost none)?']];
+const ambigHint = n => { const h = AMBIG_HINTS.find(x => x[0].test(n)); return h ? h[1] : ''; };
+/* Every unrecognised ingredient across all recipes, with how many recipes use it. */
+function unkReport() {
+  const m = new Map();
+  S.recipes.forEach(r => (r.ingredients || []).forEach(i => {
+    if (!unknownIng(i)) return;
+    const k = plain(i.name).toLowerCase().replace(/\s+/g, ' ').trim(); if (!k) return;
+    const e = m.get(k) || { name: String(i.name).trim(), recipes: new Set() }; e.recipes.add(r.name); m.set(k, e);
+  }));
+  return Array.from(m.values()).map(e => ({ name: e.name, recipes: Array.from(e.recipes).sort(), hint: ambigHint(e.name) })).sort((a, b) => b.recipes.length - a.recipes.length || a.name.localeCompare(b.name));
+}
+function drawUnkList() {
+  const box = $('#unk-list'); if (!box) return;
+  const list = unkReport();
+  box.innerHTML = list.length
+    ? '<p class="help">' + list.length + ' ingredient' + (list.length === 1 ? '' : 's') + ' in your recipes ' + (list.length === 1 ? 'is' : 'are') + ' not in the Ingredient norms, so their salt and fat count as 0. Click ＋ to add one with your own figures.</p><div style="max-height:46vh;overflow:auto"><table><thead><tr><th>Ingredient</th><th>Recipes</th><th>Worth knowing</th><th></th></tr></thead><tbody>' +
+      list.map(e => '<tr><td><b>' + esc(e.name) + '</b></td><td class="muted" title="' + esc(e.recipes.join(', ')) + '">' + e.recipes.length + ': ' + esc(e.recipes.slice(0, 2).join(', ')) + (e.recipes.length > 2 ? ', …' : '') + '</td><td class="muted">' + esc(e.hint) + '</td><td><button type="button" class="unk" data-unk="' + esc(e.name) + '" data-hint="' + esc(e.hint) + '" title="Add to the Ingredient norms">＋</button></td></tr>').join('') + '</tbody></table></div>'
+    : '<p class="help">Every ingredient in your recipes is in the Ingredient norms list.</p>';
+  box.onclick = e => { const b = e.target.closest('.unk'); if (b) addNormDialog(b.dataset.unk, drawUnkList, b.dataset.hint); };
+}
+function addNormDialog(name, done, hint) {
   const o = document.createElement('div'); o.className = 'overlay';
   const guess = plain(name).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
-  o.innerHTML = '<div class="modal"><h3>Add “' + esc(name) + '” to the Ingredient norms</h3><div class="pop-body"><p class="help">Typical figures per 100 g, used by the salt and fat analysis. Enter 0 if it has none. They are everyday approximations: use the figures from your own pack if you have them.</p>' +
+  o.innerHTML = '<div class="modal"><h3>Add “' + esc(name) + '” to the Ingredient norms</h3><div class="pop-body">' + ((hint = hint || ambigHint(name)) ? '<p class="help"><b>Worth knowing:</b> ' + esc(hint) + '</p>' : '') + '<p class="help">Typical figures per 100 g, used by the salt and fat analysis. Enter 0 if it has none. They are everyday approximations: use the figures from your own pack if you have them.</p>' +
     '<div class="form-grid"><label class="f">Words in the name<input id="nn-match" value="' + esc(guess) + '"></label><label class="f">Salt % (by weight)<input id="nn-salt" inputmode="decimal" placeholder="0"></label><label class="f">Fat % (by weight)<input id="nn-fat" inputmode="decimal" placeholder="0"></label><label class="f">Weight of one item (g), if you count it<input id="nn-each" inputmode="decimal" placeholder="optional"></label></div></div>' +
     '<div class="row"><button class="btn" id="nn-cancel" type="button">Cancel</button><button class="btn primary" id="nn-ok" type="button">Add to the list</button></div></div>';
   const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
@@ -2834,6 +2856,7 @@ function renderSettings() {
     <p class="help">Used for the fat analysis on every tab, including Sausage. The defaults follow UK traffic-light labelling: <b>low</b> is 3 g or less per 100 g, <b>high</b> is more than 17.5 g. Give a tab its own limits if its food is naturally fatty (sausages, pâtés, cheese); leave a box empty to use the default.</p>
     <div class="form-grid" style="max-width:640px"><label class="f">Low up to<input id="f-low" type="number" step="0.5" value="${fatTargets('__').low}"></label><label class="f">High above<input id="f-high" type="number" step="0.5" value="${fatTargets('__').high}"></label></div>
     <table class="edit" style="max-width:560px;margin-top:10px"><thead><tr><th>Tab</th><th>Low up to</th><th>High above</th></tr></thead><tbody>${tabList().map(t => { const o = ((S.settings.fat_targets || {}).tabs || {})[t.id] || []; return `<tr><td>${esc((t.emoji ? t.emoji + ' ' : '') + t.label)}</td><td><input class="f-tl" data-tab="${esc(t.id)}" type="number" step="0.5" value="${o[0] == null ? '' : o[0]}" placeholder="default" style="width:90px"></td><td><input class="f-th" data-tab="${esc(t.id)}" type="number" step="0.5" value="${o[1] == null ? '' : o[1]}" placeholder="default" style="width:90px"></td></tr>`; }).join('')}</tbody></table></div>
+  <div class="card"><h2>Ingredients not in the list</h2><div id="unk-list"></div></div>
   <div class="card"><h2>Meat words (Sausage &amp; bacon tab)</h2>
     <p class="help">When you import a recipe on the Sausage &amp; bacon tab, an ingredient is typed as meat if its name contains one of these words (and it is weighed in g or kg). Built in: pork, beef, lamb, mutton, venison, veal, chicken, turkey, duck, goose, boar, neck, shoulder, belly, loin, rump, chuck, brisket, mince, gammon, bacon, back fat, lard, liver, offal, trotters, jowl, cheeks, tongue, ham, leg, topside, silverside, game, rabbit, sausage, kielbasa, chorizo, salami, pancetta, lardons, prosciutto. Add your own below, separated by commas.</p>
     <textarea id="mw-extra" rows="2" style="max-width:640px" placeholder="for example: kangaroo, wild boar, mortadella">${esc(S.settings.meat_words_extra || '')}</textarea></div>
@@ -2916,6 +2939,7 @@ function renderSettings() {
   $('#d-signin').onclick = async () => { try { await Drive.signIn(); await syncNow(); render(); } catch (e) { toast('Sign-in did not complete: ' + (e.message || e), true); } };
   $$('input[name=tsz]').forEach(el => el.onchange = () => { try { localStorage.setItem('rb:ts', el.value); } catch (e) {} applyTextSize(el.value); $$('#ts-row label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); toast('Text size: ' + (TEXT_SIZES.find(t => t[0] === el.value) || [])[1]); });
   $('#d-check').onclick = checkSources;
+  drawUnkList();
   $('#d-cat').onclick = async () => { try { if (!Drive.putRoot) throw new Error('Not available in test mode'); toast('Updating the catalogue…'); await writeCatalogue(true); const r = await writeOriginals(); toast('Catalogue updated: ' + r.files + ' original files listed, ' + r.unused + ' not used by any recipe' + (r.outside ? ', ' + r.outside + ' used from outside the files folder' : '')); } catch (e) { toast(e.message || String(e), true); } };
   $('#d-scan').onclick = showDriveScan;
   $('#d-allow').onclick = async () => { try { if (!Drive.allowRead) throw new Error('Not available in test mode'); await Drive.allowRead(); toast('Allowed'); } catch (e) { toast(e.message || String(e), true); } };
