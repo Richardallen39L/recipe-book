@@ -1,7 +1,10 @@
-Recipe Book v3.22.0 (web, Google Drive)
+Recipe Book v3.23.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.22.0
+New in 3.23.0
+- Unrecognised tab: the recipe names are now links. Click one to open that recipe in the editor (you can add the ingredient to the norms with the + button there, or rename the line). Save, or Cancel, returns you to the Unrecognised list, which has refreshed. Opening a recipe any other way, or switching tab, forgets the return. A long list of recipes is cut to five names with a "+n more" link that shows the rest.
+
+In 3.22.0
 - Settings has a new tab, Unrecognised, holding the Ingredients not in the list card (moved from Salt & Fat). The tab name shows how many ingredients are unrecognised, for example Unrecognised (4), and the count drops as you add them with the + button. This tab needs no Save settings button because each + saves straight away.
 
 In 3.21.0

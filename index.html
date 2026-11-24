@@ -86,6 +86,7 @@ tr.grp td{background:color-mix(in srgb,var(--cat) var(--tint),transparent);font-
 td.note{color:var(--muted);font-size:calc(13px*var(--ts,1))}
 tr.key td{font-weight:700;background:rgba(255,196,60,.22)}
 button.unk{border:1px dashed #d98a00;background:#fff6dd;color:#8a5a00;border-radius:6px;font:inherit;font-weight:700;line-height:1;padding:1px 6px;margin-left:5px;cursor:pointer}
+a.unk-rec{color:var(--accent);text-decoration:underline dotted;cursor:pointer}
 .unkname::before{content:'“'} .unkname::after{content:'”'} .unkname{color:#8a5a00}
 input.unkin{border-color:#d98a00;border-style:dashed}
 div.mvbar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:7px 10px;margin:6px 0;background:var(--accent-soft);border:1px solid var(--accent);border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,.14)}
@@ -252,7 +253,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.22.0';
+const VERSION = '3.23.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1026,18 +1027,28 @@ function unkReport() {
   S.recipes.forEach(r => (r.ingredients || []).forEach(i => {
     if (!unknownIng(i)) return;
     const k = plain(i.name).toLowerCase().replace(/\s+/g, ' ').trim(); if (!k) return;
-    const e = m.get(k) || { name: String(i.name).trim(), recipes: new Set() }; e.recipes.add(r.name); m.set(k, e);
+    const e = m.get(k) || { name: String(i.name).trim(), recipes: new Map() }; e.recipes.set(r.id, r.name); m.set(k, e);
   }));
-  return Array.from(m.values()).map(e => ({ name: e.name, recipes: Array.from(e.recipes).sort(), hint: ambigHint(e.name) })).sort((a, b) => b.recipes.length - a.recipes.length || a.name.localeCompare(b.name));
+  return Array.from(m.values()).map(e => ({ name: e.name, recipes: Array.from(e.recipes, ([id, nm]) => ({ id, name: nm })).sort((a, b) => a.name.localeCompare(b.name)), hint: ambigHint(e.name) })).sort((a, b) => b.recipes.length - a.recipes.length || a.name.localeCompare(b.name));
 }
 function drawUnkList() {
   const box = $('#unk-list'); if (!box) return;
   const list = unkReport(), cn = $('#unk-count'); if (cn) cn.textContent = list.length ? ' (' + list.length + ')' : '';
   box.innerHTML = list.length
     ? '<p class="help">' + list.length + ' ingredient' + (list.length === 1 ? '' : 's') + ' in your recipes ' + (list.length === 1 ? 'is' : 'are') + ' not in the Ingredient norms, so their salt and fat count as 0. Click ＋ to add one with your own figures.</p><div style="max-height:46vh;overflow:auto"><table><thead><tr><th>Ingredient</th><th>Recipes</th><th>Worth knowing</th><th></th></tr></thead><tbody>' +
-      list.map(e => '<tr><td><b>' + esc(e.name) + '</b></td><td class="muted" title="' + esc(e.recipes.join(', ')) + '">' + e.recipes.length + ': ' + esc(e.recipes.slice(0, 2).join(', ')) + (e.recipes.length > 2 ? ', …' : '') + '</td><td class="muted">' + esc(e.hint) + '</td><td><button type="button" class="unk" data-unk="' + esc(e.name) + '" data-hint="' + esc(e.hint) + '" title="Add to the Ingredient norms">＋</button></td></tr>').join('') + '</tbody></table></div>'
+      list.map(e => '<tr><td><b>' + esc(e.name) + '</b></td><td class="unk-recs">' + e.recipes.slice(0, 5).map(x => '<a href="#" class="unk-rec" data-id="' + x.id + '" title="Open ' + esc(x.name) + ' to edit">' + esc(x.name) + '</a>').join(', ') + (e.recipes.length > 5 ? '<span class="unk-extra" hidden>, ' + e.recipes.slice(5).map(x => '<a href="#" class="unk-rec" data-id="' + x.id + '">' + esc(x.name) + '</a>').join(', ') + '</span> <a href="#" class="unk-more muted">+' + (e.recipes.length - 5) + ' more</a>' : '') + '</td><td class="muted">' + esc(e.hint) + '</td><td><button type="button" class="unk" data-unk="' + esc(e.name) + '" data-hint="' + esc(e.hint) + '" title="Add to the Ingredient norms">＋</button></td></tr>').join('') + '</tbody></table></div>'
     : '<p class="help">Every ingredient in your recipes is in the Ingredient norms list.</p>';
-  box.onclick = e => { const b = e.target.closest('.unk'); if (b) addNormDialog(b.dataset.unk, drawUnkList, b.dataset.hint); };
+  box.onclick = async e => {
+    const b = e.target.closest('.unk'); if (b) { addNormDialog(b.dataset.unk, drawUnkList, b.dataset.hint); return; }
+    const mo = e.target.closest('.unk-more'); if (mo) { e.preventDefault(); const x = mo.parentNode.querySelector('.unk-extra'); if (x) x.hidden = false; mo.remove(); return; }
+    const a = e.target.closest('.unk-rec'); if (!a) return;
+    e.preventDefault();   // open that recipe in the editor; saving or cancelling comes back to this list
+    const r = recipeById(+a.dataset.id); if (!r) return;
+    if (dirty && !(await confirmBox('<h3>Discard your changes?</h3><p>You have edits that have not been saved.</p>', 'Discard', true))) return;
+    dirty = false; V.coll = collOf(r); V.page = 'recipe'; V.id = r.id; V.edit = true; V.draft = clone(r); V.logEdit = null; V.fromSearch = false; V.returnTo = 'unk';
+    try { localStorage.setItem('rb.coll', V.coll); } catch (x) {}
+    render();
+  };
 }
 function addNormDialog(name, done, hint) {
   const o = document.createElement('div'); o.className = 'overlay';
@@ -1274,7 +1285,7 @@ const recipeById = id => S.recipes.find(r => r.id === id);
 async function go(page, id) {
   tableSort.reset();
   if (dirty && !(await confirmBox('<h3>Discard your changes?</h3><p>You have edits that have not been saved.</p>', 'Discard', true))) return;
-  dirty = false; V.page = page; if (id !== undefined) V.id = id; V.edit = false; V.draft = null;
+  dirty = false; V.page = page; if (id !== undefined) V.id = id; V.edit = false; V.draft = null; V.returnTo = null;
   if (page === 'recipe' && V.id) { const rr = recipeById(V.id); if (rr) V.coll = collOf(rr); }
   if (page === 'note' && V.coll !== 'notes') V.coll = 'notes';
   render();
@@ -1300,7 +1311,7 @@ async function navGo(step) {
   const j = navTarget(step); if (j < 0) return;
   if (dirty && !(await confirmBox('<h3>Discard your changes?</h3><p>You have edits that have not been saved.</p>', 'Discard', true))) return;
   const e = NAV.h[j], sameTab = V.coll === e.coll;
-  dirty = false; V.edit = false; V.draft = null; V.logEdit = null; V.fromSearch = false; V.coll = e.coll; V.page = e.page;
+  dirty = false; V.edit = false; V.draft = null; V.logEdit = null; V.fromSearch = false; V.returnTo = null; V.coll = e.coll; V.page = e.page;
   if (e.page === 'note') V.noteId = e.id; else V.id = e.id;
   if (!sameTab) { $('#q').value = ''; $('#filter').value = 'all'; }
   try { localStorage.setItem('rb.coll', V.coll); } catch (x) {}
@@ -1337,7 +1348,7 @@ function renderTabs() {
 }
 async function setColl(c) {
   if (dirty && !(await confirmBox('<h3>Discard your changes?</h3><p>You have edits that have not been saved.</p>', 'Discard', true))) return;
-  dirty = false; V.coll = c; V.edit = false; V.draft = null; V.logEdit = null; V.fromSearch = false;
+  dirty = false; V.coll = c; V.edit = false; V.draft = null; V.logEdit = null; V.fromSearch = false; V.returnTo = null;
   $('#q').value = ''; $('#filter').value = 'all';
   try { localStorage.setItem('rb.coll', c); } catch (e) {}
   if (c === 'notes') { V.page = 'note'; if (!S.notes.find(n => n.id === V.noteId)) V.noteId = (S.notes[0] || {}).id || null; }
@@ -1762,6 +1773,7 @@ function renderEditor() {
     if (dirty && !(await confirmBox('<h3>Discard your changes?</h3>', 'Discard', true))) return;
     dirty = false;
     if (isNew) { V.page = 'recipe'; V.draft = null; const rr = recipeById(V.id); if (!rr || collOf(rr) !== V.coll) V.id = (S.recipes.find(x => collOf(x) === V.coll) || {}).id; } else { V.edit = false; V.draft = null; }
+    if (V.returnTo) { V.stab = V.returnTo; V.returnTo = null; V.page = 'settings'; }
     render();
   };
   $('#e-cancel').onclick = cancel; $('#e-cancel2').onclick = cancel;
@@ -1855,7 +1867,7 @@ async function submitDraft() {
   const body = Object.assign({}, d, { ingredients: d.ingredients.filter(i => i.name.trim() || i.amount != null).map(i => { const c = Object.assign({}, i); delete c._flag; return c; }) });
   try {
     const out = d.id ? await api('PUT', '/api/recipes/' + d.id, body) : await api('POST', '/api/recipes', body);
-    await load(); dirty = false; V.imp = null; V.page = 'recipe'; V.id = out.id; V.edit = false; V.draft = null; delete scaleState[out.id]; V.coll = out.collection || V.coll; render(); toast('Saved');
+    await load(); dirty = false; V.imp = null; V.page = 'recipe'; V.id = out.id; V.edit = false; V.draft = null; delete scaleState[out.id]; V.coll = out.collection || V.coll; if (V.returnTo) { V.stab = V.returnTo; V.returnTo = null; V.page = 'settings'; } render(); toast('Saved');
   } catch (e) { toast(e.message, true); }
 }
 
