@@ -1,7 +1,11 @@
-Recipe Book v3.23.0 (web, Google Drive)
+Recipe Book v3.24.0 (web, Google Drive)
 Upload the files in this folder to your GitHub Pages repo (replace the old ones).
 
-New in 3.23.0
+New in 3.24.0
+- Unrecognised tab, second card: Rows left at 0 salt and 0 fat. It lists Ingredient norms rows with both figures at 0, with the ones likely to be wrong first (for example butter, cream, eggs, nuts, French sel for salt, and any built-in row that has been zeroed, such as pork shoulder) with a suggested figure already filled in. Edit the figures and press Save, or press Really 0 to keep a row at 0 and stop listing it. The rest are under Probably fine.
+- The add dialog (the + button) no longer turns a blank salt or fat into 0: both must be typed, 0 if there is none. Typing 0 and 0 on purpose marks the row as really 0.
+
+In 3.23.0
 - Unrecognised tab: the recipe names are now links. Click one to open that recipe in the editor (you can add the ingredient to the norms with the + button there, or rename the line). Save, or Cancel, returns you to the Unrecognised list, which has refreshed. Opening a recipe any other way, or switching tab, forgets the return. A long list of recipes is cut to five names with a "+n more" link that shows the rest.
 
 In 3.22.0

@@ -253,7 +253,7 @@ const SR = () => S.recipes.filter(r => collOf(r) === 'sausage');
 const scaleState = {};      // per-recipe scaling, kept in memory only
 let dirty = false;
 
-const VERSION = '3.23.0';
+const VERSION = '3.24.0';
 const CFG=window.RECIPE_CFG||{clientId:''};
 const dev=(location.hash.match(/dev=(\w+)/)||[])[1]||'main';
 const SimDrive={async _w(){if(localStorage.getItem('sim:offline'))throw new Error('offline');await new Promise(r=>setTimeout(r,20))},
@@ -1050,11 +1050,63 @@ function drawUnkList() {
     render();
   };
 }
+/* ---- norms rows left at 0 salt and 0 fat: the ones likely to be wrong come first, with a suggested figure ---- */
+const ZERO_HINTS = {
+  'sel': { salt: 100, fat: 0, note: 'French for salt' }, 'beurre': { salt: 0, fat: 82, note: 'butter' }, 'creme liquide': { salt: 0.1, fat: 30, note: 'cream' },
+  'œufs entiers': { salt: 0.3, fat: 10, each: 55, note: 'whole eggs' }, 'jaunes d’œufs': { salt: 0, fat: 27, each: 18, note: 'egg yolks' }, 'muscade': { salt: 0, fat: 36, note: 'nutmeg' },
+  'pistaches': { salt: 0, fat: 45, note: 'pistachios' }, 'poppy seeds': { salt: 0, fat: 42, note: '' }, 'puff pastry': { salt: 0.8, fat: 30, note: 'ready-made' }, 'fromage frais': { salt: 0.1, fat: 7, note: 'full fat' },
+  'garam masala': { salt: 0.1, fat: 15, note: 'blends vary' }, 'clove': { salt: 0.7, fat: 13, note: 'the spice' }, 'cloves': { salt: 0.7, fat: 13, note: 'the spice' }, 'paprika': { salt: 0.2, fat: 13, note: '' },
+  'pimenton': { salt: 0.2, fat: 13, note: 'Spanish paprika' }, 'cumin': { salt: 0.4, fat: 22, note: '' }, 'cayenne': { salt: 0.1, fat: 17, note: '' }, 'nutmeg': { salt: 0, fat: 36, note: '' }, 'cinnamon': { salt: 0, fat: 1.2, note: '' },
+  'black pepper': { salt: 0.05, fat: 3.3, note: '' }, 'pepper': { salt: 0.05, fat: 3.3, note: 'black pepper; this row would also catch pepperoni, so a longer name is safer' }, 'oregano': { salt: 0, fat: 4.3, note: '' },
+  'dried marjoram': { salt: 0.2, fat: 7, note: '' }, 'bay leaves': { salt: 0.1, fat: 8.4, note: '' }, 'fennel seeds': { salt: 0.2, fat: 15, note: '' }, 'quail': { salt: 0.2, fat: 8, note: 'between skinless and with skin' },
+  'foie de poulet': { salt: 0.2, fat: 5, note: 'chicken liver' }, 'blanc de volaille': { salt: 0.2, fat: 2, note: 'chicken breast' }, 'aiguillette canard': { salt: 0.2, fat: 5, note: 'duck breast strips' },
+  'farce fine': { note: 'pork forcemeat, roughly 25–30% fat: it is better to list its real ingredients' }, 'farce gorge et poitrine porc': { note: 'pork forcemeat, roughly 25–30% fat: it is better to list its real ingredients' }
+};
+function zeroRows() {
+  const ok = new Set(S.settings.zero_ok || []), def = new Map(DEFAULT_NORMS.map(x => [x.match, x])), out = [];
+  effNorms().forEach(r => {
+    if (r.each != null || r.liquid != null || ok.has(r.match) || (+r.salt || 0) !== 0 || (+r.fat || 0) !== 0) return;
+    const d = def.get(r.match), builtInZero = d && (+d.salt || 0) === 0 && (+d.fat || 0) === 0;
+    if (builtInZero) return;
+    let hint = ZERO_HINTS[r.match] ? Object.assign({}, ZERO_HINTS[r.match]) : null;
+    if (d && !builtInZero) hint = { salt: +d.salt || 0, fat: +d.fat || 0, note: 'the built-in figures' };
+    out.push({ match: r.match, hint });
+  });
+  return out.sort((a, b) => (!!b.hint - !!a.hint) || a.match.localeCompare(b.match));
+}
+function drawZeroList() {
+  const box = $('#zero-list'); if (!box) return;
+  const all = zeroRows(), pri = all.filter(x => x.hint), rest = all.filter(x => !x.hint);
+  const row = x => '<tr data-m="' + esc(x.match) + '"><td><b>' + esc(x.match) + '</b></td><td><input class="z-salt" inputmode="decimal" value="' + (x.hint && x.hint.salt != null ? x.hint.salt : 0) + '" style="width:5.5em"></td><td><input class="z-fat" inputmode="decimal" value="' + (x.hint && x.hint.fat != null ? x.hint.fat : 0) + '" style="width:5.5em"></td><td class="muted">' + esc(x.hint ? (x.hint.salt != null ? 'Suggested: ' : '') + (x.hint.note || '') : '') + '</td><td style="white-space:nowrap"><button type="button" class="btn small z-save">Save</button> <button type="button" class="btn small z-ok" title="Keep it at 0 and stop listing it">Really 0</button></td></tr>';
+  const tbl = list => '<div style="max-height:46vh;overflow:auto"><table><thead><tr><th>Words in the name</th><th>Salt %</th><th>Fat %</th><th>Note</th><th></th></tr></thead><tbody>' + list.map(row).join('') + '</tbody></table></div>';
+  box.innerHTML = all.length
+    ? '<p class="help">These rows are at 0 salt and 0 fat, so such ingredients count as having none. That is right for water or wine but wrong for butter, cream, eggs or nuts. Correct the figures and press Save, or press “Really 0” to keep it at 0 and stop listing it.</p>' +
+      (pri.length ? '<p><b>Probably wrong (' + pri.length + ')</b></p>' + tbl(pri) : '') +
+      (rest.length ? '<details' + (pri.length ? '' : ' open') + ' style="margin-top:10px"><summary>Probably fine (' + rest.length + ')</summary>' + tbl(rest) + '</details>' : '')
+    : '<p class="help">No rows are left at 0 salt and 0 fat without you having confirmed them.</p>';
+  box.onclick = async e => {
+    const b = e.target.closest('.z-save, .z-ok'); if (!b) return;
+    const tr = b.closest('tr'), m = tr.dataset.m;
+    try {
+      if (b.classList.contains('z-ok')) await api('PUT', '/api/settings', { zero_ok: Array.from(new Set((S.settings.zero_ok || []).concat(m))) });
+      else {
+        const num = c => { const v = String($(c, tr).value).trim().replace(',', '.'); return v === '' ? NaN : parseFloat(v); }, salt = num('.z-salt'), fat = num('.z-fat');
+        if ([salt, fat].some(x => isNaN(x) || x < 0 || x > 100)) return toast('Salt % and fat % must be numbers between 0 and 100', true);
+        const list = clone(effNorms()), ex = list.find(x => x.match === m); if (!ex) return;
+        ex.salt = salt; ex.fat = fat; const h = ZERO_HINTS[m]; if (h && h.each && ex.each == null) ex.each = h.each;
+        const patch = { ingredient_norms: list, norms_version: NORMS_VERSION };
+        if (salt === 0 && fat === 0) patch.zero_ok = Array.from(new Set((S.settings.zero_ok || []).concat(m)));
+        await api('PUT', '/api/settings', patch);
+      }
+      await load(); drawZeroList(); drawUnkList();
+    } catch (er) { toast(er.message || String(er), true); }
+  };
+}
 function addNormDialog(name, done, hint) {
   const o = document.createElement('div'); o.className = 'overlay';
   const guess = plain(name).replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim();
-  o.innerHTML = '<div class="modal"><h3>Add “' + esc(name) + '” to the Ingredient norms</h3><div class="pop-body">' + ((hint = hint || ambigHint(name)) ? '<p class="help"><b>Worth knowing:</b> ' + esc(hint) + '</p>' : '') + '<p class="help">Typical figures per 100 g, used by the salt and fat analysis. Enter 0 if it has none. They are everyday approximations: use the figures from your own pack if you have them.</p>' +
-    '<div class="form-grid"><label class="f">Words in the name<input id="nn-match" value="' + esc(guess) + '"></label><label class="f">Salt % (by weight)<input id="nn-salt" inputmode="decimal" placeholder="0"></label><label class="f">Fat % (by weight)<input id="nn-fat" inputmode="decimal" placeholder="0"></label><label class="f">Weight of one item (g), if you count it<input id="nn-each" inputmode="decimal" placeholder="optional"></label></div></div>' +
+  o.innerHTML = '<div class="modal"><h3>Add “' + esc(name) + '” to the Ingredient norms</h3><div class="pop-body">' + ((hint = hint || ambigHint(name)) ? '<p class="help"><b>Worth knowing:</b> ' + esc(hint) + '</p>' : '') + '<p class="help">Typical figures per 100 g, used by the salt and fat analysis. Type 0 if it has none. They are everyday approximations: use the figures from your own pack if you have them.</p>' +
+    '<div class="form-grid"><label class="f">Words in the name<input id="nn-match" value="' + esc(guess) + '"></label><label class="f">Salt % (by weight)<input id="nn-salt" inputmode="decimal" placeholder="required, 0 if none"></label><label class="f">Fat % (by weight)<input id="nn-fat" inputmode="decimal" placeholder="required, 0 if none"></label><label class="f">Weight of one item (g), if you count it<input id="nn-each" inputmode="decimal" placeholder="optional"></label></div></div>' +
     '<div class="row"><button class="btn" id="nn-cancel" type="button">Cancel</button><button class="btn primary" id="nn-ok" type="button">Add to the list</button></div></div>';
   const onKey = ev => { if (ev.key === 'Escape') close(); }, close = () => { o.remove(); document.removeEventListener('keydown', onKey); };
   o.addEventListener('mousedown', ev => { if (ev.target === o) close(); }); document.addEventListener('keydown', onKey); document.body.appendChild(o);
@@ -1063,13 +1115,16 @@ function addNormDialog(name, done, hint) {
     const num = sel => { const v = String(o.querySelector(sel).value).trim().replace(',', '.'); return v === '' ? null : parseFloat(v); };
     const match = o.querySelector('#nn-match').value.trim().toLowerCase(), salt = num('#nn-salt'), fat = num('#nn-fat'), each = num('#nn-each');
     if (!match) return toast('Type the words to look for in the name', true);
-    if ([salt, fat].some(x => x != null && (isNaN(x) || x < 0 || x > 100))) return toast('Salt % and fat % must be between 0 and 100', true);
+    if (salt == null || fat == null) return toast('Enter the salt % and the fat %. Type 0 if it has none.', true);
+    if ([salt, fat].some(x => isNaN(x) || x < 0 || x > 100)) return toast('Salt % and fat % must be between 0 and 100', true);
     if (each != null && (isNaN(each) || each <= 0)) return toast('The weight of one item must be a number above 0', true);
-    const row = { match, salt: salt == null ? 0 : salt, fat: fat == null ? 0 : fat }; if (each != null) row.each = each;
+    const row = { match, salt, fat }; if (each != null) row.each = each;
     try {
       const list = clone(effNorms()), ex = list.find(x => x.match === match);
       if (ex) Object.assign(ex, row); else list.unshift(row);
-      await api('PUT', '/api/settings', { ingredient_norms: list, norms_version: NORMS_VERSION }); await load(); close();
+      const patch = { ingredient_norms: list, norms_version: NORMS_VERSION };
+      if (salt === 0 && fat === 0) patch.zero_ok = Array.from(new Set((S.settings.zero_ok || []).concat(match)));   // you typed 0 on purpose
+      await api('PUT', '/api/settings', patch); await load(); close();
       toast('Added “' + match + '” to the Ingredient norms'); if (done) done();
     } catch (e) { toast(e.message || String(e), true); }
   };
@@ -2877,6 +2932,7 @@ function renderSettings() {
     <p><button class="btn small" id="n-add">＋ Add row</button> <button class="btn small" id="n-reset">Reset to the built-in list</button></p></div>
   </div><div class="stab" data-st="unk">
   <div class="card"><h2>Ingredients not in the list</h2><div id="unk-list"></div></div>
+  <div class="card"><h2>Rows left at 0 salt and 0 fat</h2><div id="zero-list"></div></div>
   </div><div class="stab" data-st="flags">
   <div class="card"><h2>Ingredient flags (additives and ultra-processed markers)</h2>
     <p class="help">Recipes are checked for these words in the ingredient names. A match shows a flag next to the ingredient and an “Additives” line at the top of the recipe, with the notes and workarounds below. Words are separated by commas and matched at the start of a word, in any language you add. Switch a row off to stop flagging it. “Curing (safety)” rows are shown but not counted.</p>
@@ -2952,7 +3008,7 @@ function renderSettings() {
   $('#d-signin').onclick = async () => { try { await Drive.signIn(); await syncNow(); render(); } catch (e) { toast('Sign-in did not complete: ' + (e.message || e), true); } };
   $$('input[name=tsz]').forEach(el => el.onchange = () => { try { localStorage.setItem('rb:ts', el.value); } catch (e) {} applyTextSize(el.value); $$('#ts-row label').forEach(l => l.classList.toggle('on', l.querySelector('input').checked)); toast('Text size: ' + (TEXT_SIZES.find(t => t[0] === el.value) || [])[1]); });
   $('#d-check').onclick = checkSources;
-  drawUnkList();
+  drawUnkList(); drawZeroList();
   $('#d-cat').onclick = async () => { try { if (!Drive.putRoot) throw new Error('Not available in test mode'); toast('Updating the catalogue…'); await writeCatalogue(true); const r = await writeOriginals(); toast('Catalogue updated: ' + r.files + ' original files listed, ' + r.unused + ' not used by any recipe' + (r.outside ? ', ' + r.outside + ' used from outside the files folder' : '')); } catch (e) { toast(e.message || String(e), true); } };
   $('#d-scan').onclick = showDriveScan;
   $('#d-allow').onclick = async () => { try { if (!Drive.allowRead) throw new Error('Not available in test mode'); await Drive.allowRead(); toast('Allowed'); } catch (e) { toast(e.message || String(e), true); } };
